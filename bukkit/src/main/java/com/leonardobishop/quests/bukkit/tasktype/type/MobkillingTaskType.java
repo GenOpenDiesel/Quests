@@ -27,6 +27,7 @@ public final class MobkillingTaskType extends BukkitTaskType {
 
     private final BukkitQuestsPlugin plugin;
     private final Table<String, String, QuestItem> fixedQuestItemCache = HashBasedTable.create();
+    private final Table<String, String, QuestItem> fixedQuestProjectileItemCache = HashBasedTable.create();
 
     public MobkillingTaskType(BukkitQuestsPlugin plugin) {
         super("mobkilling", TaskUtils.TASK_ATTRIBUTION_STRING, "Kill a set amount of a entity type.", "mobkillingcertain");
@@ -38,8 +39,10 @@ public final class MobkillingTaskType extends BukkitTaskType {
         super.addConfigValidator(TaskUtils.useSpawnReasonListConfigValidator(this, "spawn-reason", "spawn-reasons"));
         super.addConfigValidator(TaskUtils.useBooleanConfigValidator(this, "hostile"));
         super.addConfigValidator(TaskUtils.useItemStackConfigValidator(this, "item"));
+        super.addConfigValidator(TaskUtils.useItemStackConfigValidator(this, "projectile-item"));
         super.addConfigValidator(TaskUtils.useIntegerConfigValidator(this, "data"));
         super.addConfigValidator(TaskUtils.useBooleanConfigValidator(this, "exact-match"));
+        super.addConfigValidator(TaskUtils.useBooleanConfigValidator(this, "projectile-item-exact-match"));
         super.addConfigValidator(TaskUtils.useEnumConfigValidator(this, TaskUtils.StringMatchMode.class, "name-match-mode", null, false));
 
         if (plugin.getQuestsConfig().getBoolean("options.mobkilling-use-wildstacker-hook", true)) {
@@ -57,6 +60,7 @@ public final class MobkillingTaskType extends BukkitTaskType {
     @Override
     public void onReady() {
         fixedQuestItemCache.clear();
+        fixedQuestProjectileItemCache.clear();
     }
 
     private final class EntityDeathListener implements Listener {
@@ -110,6 +114,7 @@ public final class MobkillingTaskType extends BukkitTaskType {
         Entity directSource = plugin.getVersionSpecificHandler().getDirectSource(lastDamageCause);
         ItemStack bowItem = directSource != null ? plugin.getProjectile2ItemCache().getItem(directSource) : null;
         ItemStack item = bowItem != null ? bowItem : plugin.getVersionSpecificHandler().getItemInMainHand(player);
+        ItemStack projectileItem = directSource != null ? plugin.getVersionSpecificHandler().getAbstractArrowItem(directSource) : null;
 
         //noinspection deprecation
         String customName = entity.getCustomName();
@@ -169,6 +174,30 @@ public final class MobkillingTaskType extends BukkitTaskType {
                     continue;
                 } else {
                     super.debug("Item matches required item", quest.getId(), task.getId(), player.getUniqueId());
+                }
+            }
+
+            if (task.hasConfigKey("projectile-item")) {
+                if (projectileItem == null) {
+                    super.debug("Specific projectile item is required, no projectile item detected; continuing...", quest.getId(), task.getId(), player.getUniqueId());
+                    continue;
+                }
+
+                super.debug("Specific projectile item is required; projectile item is of type '" + projectileItem.getType() + "'", quest.getId(), task.getId(), player.getUniqueId());
+
+                QuestItem qi;
+                if ((qi = fixedQuestProjectileItemCache.get(quest.getId(), task.getId())) == null) {
+                    QuestItem fetchedItem = TaskUtils.getConfigQuestItem(task, "projectile-item", "data");
+                    fixedQuestProjectileItemCache.put(quest.getId(), task.getId(), fetchedItem);
+                    qi = fetchedItem;
+                }
+
+                boolean exactMatch = TaskUtils.getConfigBoolean(task, "projectile-item-exact-match", true);
+                if (!qi.compareItemStack(projectileItem, exactMatch)) {
+                    super.debug("Projectile item does not match required item, continuing...", quest.getId(), task.getId(), player.getUniqueId());
+                    continue;
+                } else {
+                    super.debug("Projectile item matches required item", quest.getId(), task.getId(), player.getUniqueId());
                 }
             }
 

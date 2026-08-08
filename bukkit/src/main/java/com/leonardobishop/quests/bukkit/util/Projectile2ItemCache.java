@@ -51,12 +51,13 @@ public final class Projectile2ItemCache implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityShootBow(final EntityShootBowEvent event) {
         final LivingEntity shooter = event.getEntity();
-        final Entity projectile = event.getProjectile();
-        final ItemStack bow = event.getBow();
 
         // Currently there are no advantages of caching projectiles for non-player arrows.
         // It would be needed to cache these if we needed a task to take damage from mobs.
         if (shooter instanceof Player) {
+            final Entity projectile = event.getProjectile();
+            final ItemStack bow = event.getBow();
+
             this.backingMap.put(projectile, bow);
         }
     }

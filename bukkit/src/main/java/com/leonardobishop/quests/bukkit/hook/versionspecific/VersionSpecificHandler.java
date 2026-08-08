@@ -8,6 +8,7 @@ import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.CaveVinesPlant;
 import org.bukkit.damage.DamageSource;
+import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.AbstractHorse;
 import org.bukkit.entity.Camel;
 import org.bukkit.entity.CamelHusk;
@@ -374,4 +375,12 @@ public interface VersionSpecificHandler {
      * {@link Biome} implements {@link Keyed} from {@code 1.14}.
      */
     String getBiomeKey(Biome biome);
+
+    /**
+     * {@link AbstractArrow}s were introduced in {@code 1.14}.
+     * Unfortunately there was no method to retrieve item used to summon arrow. In {@code 1.15.2} Paper added
+     * {@link AbstractArrow#getItemStack()}. In {@code 1.20.4} Spigot added {@link AbstractArrow#getItem()}.
+     */
+    @SuppressWarnings("removal")
+    @Nullable ItemStack getAbstractArrowItem(Entity entity);
 }

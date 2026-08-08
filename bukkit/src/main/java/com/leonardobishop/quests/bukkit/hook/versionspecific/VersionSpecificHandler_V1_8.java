@@ -248,4 +248,9 @@ public class VersionSpecificHandler_V1_8 implements VersionSpecificHandler {
     public String getBiomeKey(Biome biome) {
         return biome.name();
     }
+
+    @Override
+    public @Nullable ItemStack getAbstractArrowItem(Entity entity) {
+        return null;
+    }
 }
