@@ -1,0 +1,55 @@
+name: Release plugin after code changes
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "bukkit/**"
+      - "common/**"
+      - "gradle/**"
+      - "build.gradle.kts"
+      - "settings.gradle.kts"
+      - "gradlew"
+      - "gradlew.bat"
+      - ".github/workflows/auto-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build plugin
+        run: ./gradlew --no-daemon --stacktrace
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          short_sha="${GITHUB_SHA::7}"
+          tag="build-${GITHUB_RUN_NUMBER}-${short_sha}"
+          gh release create "$tag" build/libs/*.jar \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Quests build ${GITHUB_RUN_NUMBER} (${short_sha})" \
+            --generate-notes

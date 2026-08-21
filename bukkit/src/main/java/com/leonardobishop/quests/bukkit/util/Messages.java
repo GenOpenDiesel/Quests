@@ -28,6 +28,8 @@ public enum Messages {
     QUEST_START_COOLDOWN("messages.quest-start-cooldown", "&7You have recently completed this quest. You have to wait &c{time} &7until you are able to restart it."),
     QUEST_START_STARTED("messages.quest-start-started", "&7You have already started this quest."),
     QUEST_START_PERMISSION("messages.quest-start-permission", "&7You do not have permission to start this quest."),
+    QUEST_START_PLAYTIME("messages.quest-start-playtime", "&7Zadania z kategorii &c{category} &7wymagają &c{required-playtime} &7gry. Musisz grać jeszcze &c{time}&7."),
+    QUEST_START_MULTI_ACCOUNT("messages.quest-start-multi-account", "&7Z jednego adresu IP zadania mogą wykonywać &c{limit} &7konta, a limit zajmuje już m.in. &c{alt}&7. Odblokowanie za &c{time}&7."),
     QUEST_CATEGORY_QUEST_PERMISSION("messages.quest-category-quest-permission", "&7You do not have permission to view this category."),
     QUEST_CATEGORY_PERMISSION("messages.quest-category-permission", "&7You do not have permission to start this quest since it is in a category you do not have permission to view."),
     QUEST_CANCEL_NOTSTARTED("messages.quest-cancel-notstarted", "&7You have not started this quest."),

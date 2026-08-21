@@ -9,6 +9,7 @@ import com.leonardobishop.quests.bukkit.menu.itemstack.QItemStack;
 import com.leonardobishop.quests.bukkit.util.FormatUtils;
 import com.leonardobishop.quests.bukkit.util.MenuUtils;
 import com.leonardobishop.quests.bukkit.util.Messages;
+import com.leonardobishop.quests.bukkit.util.RestrictionUtils;
 import com.leonardobishop.quests.bukkit.util.chat.Chat;
 import com.leonardobishop.quests.common.enums.QuestStartResult;
 import com.leonardobishop.quests.common.player.QPlayer;
@@ -107,6 +108,17 @@ public class QuestMenuElement extends MenuElement {
             } else {
                 display = config.getItem("gui.quest-completed-display");
             }
+        } else if (status == QuestStartResult.QUEST_PLAYTIME_TOO_LOW || status == QuestStartResult.QUEST_MULTI_ACCOUNT) {
+            Player player = plugin.getServer().getPlayer(owner.getPlayerUUID());
+            placeholders.put("{quest}", Chat.legacyStrip(qItemStack.getName()));
+            placeholders.put("{questcolored}", qItemStack.getName());
+            placeholders.put("{questid}", quest.getId());
+            if (player != null) {
+                placeholders.putAll(status == QuestStartResult.QUEST_PLAYTIME_TOO_LOW
+                        ? RestrictionUtils.getPlaytimePlaceholders(plugin, player, quest)
+                        : RestrictionUtils.getMultiAccountPlaceholders(plugin, player));
+            }
+            display = RestrictionUtils.getRestrictionItem(plugin, status == QuestStartResult.QUEST_PLAYTIME_TOO_LOW);
         } else if (status == QuestStartResult.QUEST_NO_PERMISSION) {
             placeholders.put("{quest}", Chat.legacyStrip(qItemStack.getName()));
             placeholders.put("{questcolored}", qItemStack.getName());

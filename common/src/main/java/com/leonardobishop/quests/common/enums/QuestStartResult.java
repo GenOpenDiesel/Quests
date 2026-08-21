@@ -9,7 +9,9 @@ public enum QuestStartResult {
     QUEST_ALREADY_STARTED(true), //5
     QUEST_NO_PERMISSION, //6
     NO_PERMISSION_FOR_CATEGORY, //7
-    OTHER; //8
+    OTHER, //8
+    QUEST_PLAYTIME_TOO_LOW, //9
+    QUEST_MULTI_ACCOUNT; //10
 
     private final boolean playerStartedQuest;
 

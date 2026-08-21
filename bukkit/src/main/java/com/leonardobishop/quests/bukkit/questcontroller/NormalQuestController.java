@@ -14,6 +14,7 @@ import com.leonardobishop.quests.bukkit.menu.itemstack.QItemStack;
 import com.leonardobishop.quests.bukkit.util.DispatchUtils;
 import com.leonardobishop.quests.bukkit.util.FormatUtils;
 import com.leonardobishop.quests.bukkit.util.Messages;
+import com.leonardobishop.quests.bukkit.util.RestrictionUtils;
 import com.leonardobishop.quests.bukkit.util.SoundUtils;
 import com.leonardobishop.quests.bukkit.util.chat.Chat;
 import com.leonardobishop.quests.common.enums.QuestStartResult;
@@ -99,6 +100,12 @@ public class NormalQuestController implements QuestController {
                     break;
                 case NO_PERMISSION_FOR_CATEGORY:
                     questResultMessage = Messages.QUEST_CATEGORY_QUEST_PERMISSION.getMessage();
+                    break;
+                case QUEST_PLAYTIME_TOO_LOW:
+                    questResultMessage = RestrictionUtils.applyPlaytimePlaceholders(plugin, player, quest, Messages.QUEST_START_PLAYTIME.getMessage());
+                    break;
+                case QUEST_MULTI_ACCOUNT:
+                    questResultMessage = RestrictionUtils.applyMultiAccountPlaceholders(plugin, player, Messages.QUEST_START_MULTI_ACCOUNT.getMessage());
                     break;
             }
 
@@ -224,6 +231,12 @@ public class NormalQuestController implements QuestController {
                     return QuestStartResult.NO_PERMISSION_FOR_CATEGORY;
                 }
             }
+        }
+
+        final QuestStartResult restrictionResult = this.plugin.getQuestRestrictionManager().checkQuest(player, quest);
+
+        if (restrictionResult != QuestStartResult.QUEST_SUCCESS) {
+            return restrictionResult;
         }
 
         final boolean autostart = this.config.getBoolean("options.quest-autostart");

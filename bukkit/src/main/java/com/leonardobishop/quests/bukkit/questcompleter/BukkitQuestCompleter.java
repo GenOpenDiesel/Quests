@@ -85,6 +85,9 @@ public class BukkitQuestCompleter implements QuestCompleter, Runnable {
 
             plugin.getQuestsLogger().debug("Processing player (singular: " + questProgress.getQuestId() + ") " + qPlayer.getPlayerUUID());
 
+            // a task of this quest was just completed, which counts as quest activity
+            plugin.getQuestRestrictionManager().recordActivity(player);
+
             checkExpiredQuests(qPlayer);
 
             Quest quest = plugin.getQuestManager().getQuestById(questProgress.getQuestId());

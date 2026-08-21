@@ -364,6 +364,27 @@ gui:
       - "&7You do not have permission for this"
       - "&7quest (&6{quest}&7)."
     type: "BROWN_STAINED_GLASS_PANE"
+  # Ponizsze dwa itemy sa OPCJONALNE - blokady (3h gry dla kategorii sredni/trudny oraz
+  # blokada multikont z tego samego IP przez 30 dni) sa wbudowane w plugin i dzialaja
+  # takze bez tych wpisow, wtedy uzywany jest domyslny wyglad z kodu.
+  quest-playtime-display:
+    name: "&e&lZa maly czas gry"
+    lore:
+      - "&7Zadania z kategorii &e{category}"
+      - "&7wymagaja &e{required-playtime} &7gry."
+      - ""
+      - "&7Twoj czas gry: &e{playtime}"
+      - "&7Brakuje ci: &e{time}"
+    type: "CLOCK"
+  quest-multi-account-display:
+    name: "&c&lZablokowane (multikonto)"
+    lore:
+      - "&7Z jednego adresu IP zadania"
+      - "&7moga wykonywac &c{limit} &7konta."
+      - "&7Limit zajmuje juz m.in. &c{alt}&7."
+      - ""
+      - "&7Odblokowanie za: &c{time}"
+    type: "BARRIER"
   quest-cooldown-display:
     name: "&e&lQuest On Cooldown"
     lore:
@@ -488,6 +509,10 @@ messages:
   quest-start-cooldown: "&7You have recently completed this quest. You have to wait &c{time} &7until you are able to restart it."
   quest-start-started: "&7You have already started this quest."
   quest-start-permission: "&7You do not have permission to start this quest."
+  # {category} {categoryid} {required-playtime} {playtime} {time}
+  quest-start-playtime: "&7Zadania z kategorii &c{category} &7wymagaja &c{required-playtime} &7gry. Musisz grac jeszcze &c{time}&7."
+  # {alt} {time}
+  quest-start-multi-account: "&7Z jednego adresu IP zadania moga wykonywac &c{limit} &7konta, a limit zajmuje juz m.in. &c{alt}&7. Odblokowanie za &c{time}&7."
   quest-category-permission: "&7You do not have permission to view this category."
   quest-category-quest-permission: "&7You do not have permission to start this quest since it is in a category you do not have permission to view."
   quest-cancel-notstarted: "&7You have not started this quest."

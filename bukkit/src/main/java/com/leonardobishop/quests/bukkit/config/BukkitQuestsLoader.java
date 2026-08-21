@@ -131,6 +131,13 @@ public class BukkitQuestsLoader implements QuestsLoader {
             qItemStackRegistry.register(category, displayItem);
         }
 
+        for (String id : plugin.getQuestRestrictionManager().getCategoryRequirements().keySet()) {
+            if (questManager.getCategoryById(id) == null) {
+                questsLogger.warning("Category '" + id + "' requires a minimum playtime but does not exist - "
+                        + "check RESTRICTED_CATEGORIES in QuestRestrictionManager");
+            }
+        }
+
         // <\$m\s*([^ ]+)\s*\$>
         Pattern macroPattern = Pattern.compile("<\\$m\\s*([^ ]+)\\s*\\$>");
 

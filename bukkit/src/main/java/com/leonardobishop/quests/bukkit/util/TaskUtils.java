@@ -286,6 +286,10 @@ public class TaskUtils {
 
         for (Quest quest : type.getRegisteredQuests()) {
             if (qPlayer.hasStartedQuest(quest)) {
+                if (!plugin.getQuestRestrictionManager().canProgressQuest(player, quest)) {
+                    continue;
+                }
+
                 QuestProgress questProgress = qPlayer.getQuestProgressFile().getQuestProgress(quest);
 
                 for (Task task : quest.getTasksOfType(type.getType())) {

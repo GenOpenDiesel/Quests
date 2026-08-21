@@ -55,6 +55,10 @@ public class AdminModdataStartCommandHandler implements CommandHandler {
                     case NO_PERMISSION_FOR_CATEGORY:
                         Messages.COMMAND_QUEST_ADMIN_START_FAILCATEGORYPERMISSION.send(sender, "{player}", args[3], "{quest}", quest.getId());
                         return;
+                    case QUEST_PLAYTIME_TOO_LOW:
+                    case QUEST_MULTI_ACCOUNT:
+                        Messages.COMMAND_QUEST_ADMIN_START_FAILOTHER.send(sender, "{player}", args[3], "{quest}", quest.getId());
+                        return;
                 }
 
                 Messages.COMMAND_QUEST_ADMIN_START_SUCCESS.send(sender, "{player}", args[3], "{quest}", quest.getId());

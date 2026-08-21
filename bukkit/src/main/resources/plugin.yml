@@ -76,6 +76,12 @@ permissions:
   quests.command.random:
     description: Permission to execute /q random
     default: op
+  quests.bypass.playtime:
+    description: Permission to ignore the playtime requirement of quest categories
+    default: false
+  quests.bypass.multiaccount:
+    description: Permission to ignore the multi-account protection
+    default: false
   quests.admin:
     description: Permission for the admin commands
     default: op

@@ -60,6 +60,16 @@ also be viewed in-game by simply running `/quests`.
   - **/quests a/admin update** - check for updates.
   - **/quests a/admin wiki** - get a link to the wiki.
   - **/quests a/admin about** - view plugin information.
+  - **/quests a/admin restrictions \[player\]** - view the playtime
+    requirements of categories and the multi-account protection, and why
+    a specific player is blocked.
+  - **/quests a/admin restrictions exempt \<player\> \<player\>** - allow two
+    specific accounts (siblings, for example) to play quests from the same
+    address without blocking each other.
+  - **/quests a/admin restrictions unexempt \<player\> \<player\>** - remove
+    such a pair again.
+  - **/quests a/admin restrictions exemptions \[player\]** - list all pairs,
+    or the accounts a specific player is paired with.
 
 ## Permissions
 
@@ -72,6 +82,9 @@ also be viewed in-game by simply running `/quests`.
 - `quests.command.cancel` - to cancel a quest by command (/q cancel)
 - `quests.command.random` - to starting a random quest (/q random)
 - `quests.admin` - for admin commands
+- `quests.bypass.playtime` - to ignore the minimum playtime required by
+  the restricted quest categories
+- `quests.bypass.multiaccount` - to ignore the multi-account protection
 
 The following are dependent on specific quests & categories:
 

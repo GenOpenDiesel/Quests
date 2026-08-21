@@ -44,10 +44,12 @@ import com.leonardobishop.quests.bukkit.item.QuestItem;
 import com.leonardobishop.quests.bukkit.item.QuestItemRegistry;
 import com.leonardobishop.quests.bukkit.listener.PlayerJoinListener;
 import com.leonardobishop.quests.bukkit.listener.PlayerLeaveListener;
+import com.leonardobishop.quests.bukkit.listener.QuestRestrictionListener;
 import com.leonardobishop.quests.bukkit.menu.MenuController;
 import com.leonardobishop.quests.bukkit.menu.itemstack.QItemStackRegistry;
 import com.leonardobishop.quests.bukkit.questcompleter.BukkitQuestCompleter;
 import com.leonardobishop.quests.bukkit.questcontroller.NormalQuestController;
+import com.leonardobishop.quests.bukkit.restriction.QuestRestrictionManager;
 import com.leonardobishop.quests.bukkit.runnable.QuestsAutoSaveRunnable;
 import com.leonardobishop.quests.bukkit.scheduler.ServerScheduler;
 import com.leonardobishop.quests.bukkit.scheduler.WrappedTask;
@@ -199,6 +201,7 @@ public class BukkitQuestsPlugin extends JavaPlugin implements Quests {
     private QuestController questController;
     private BukkitQuestCompleter questCompleter;
     private BukkitQuestsConfig questsConfig;
+    private QuestRestrictionManager questRestrictionManager;
     private Updater updater;
     private ServerScheduler serverScheduler;
     private StorageProvider storageProvider;
@@ -269,6 +272,10 @@ public class BukkitQuestsPlugin extends JavaPlugin implements Quests {
         return questsConfig;
     }
 
+    public @NotNull QuestRestrictionManager getQuestRestrictionManager() {
+        return questRestrictionManager;
+    }
+
     @Override
     public @NotNull Updater getUpdater() {
         return updater;
@@ -316,6 +323,9 @@ public class BukkitQuestsPlugin extends JavaPlugin implements Quests {
         this.serverScheduler = FoliaServerScheduler.FOLIA ? new FoliaServerScheduler(this) : new BukkitServerSchedulerAdapter(this);
         questsLogger.info("Running server scheduler: " + serverScheduler.getServerSchedulerName());
 
+        // Playtime and multi-account restrictions (configured in reloadBaseConfiguration)
+        this.questRestrictionManager = new QuestRestrictionManager(this);
+
         // Load base configuration for use during rest of startup procedure
         if (!this.reloadBaseConfiguration(true)) {
             questsLogger.severe("Plugin cannot start into a stable state as the configuration is broken!");
@@ -338,6 +348,9 @@ public class BukkitQuestsPlugin extends JavaPlugin implements Quests {
                 }
                 this.storageProvider = new ModernMySQLStorageProvider(this, section);
         }
+
+        // Read the known addresses and quest activity of all accounts
+        this.questRestrictionManager.start();
 
         try {
             questsLogger.info("Initialising storage provider '" + storageProvider.getName() + "'");
@@ -405,6 +418,7 @@ public class BukkitQuestsPlugin extends JavaPlugin implements Quests {
         super.getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
         super.getServer().getPluginManager().registerEvents(menuController, this);
         super.getServer().getPluginManager().registerEvents(new PlayerLeaveListener(this), this);
+        super.getServer().getPluginManager().registerEvents(new QuestRestrictionListener(this), this);
 
         // Register task types after the server has fully started
         getScheduler().doSync(() -> {
@@ -623,6 +637,9 @@ public class BukkitQuestsPlugin extends JavaPlugin implements Quests {
         }
         try {
             qPlayerManager.getStorageProvider().shutdown();
+        } catch (Exception ignored) { }
+        try {
+            questRestrictionManager.shutdown();
         } catch (Exception ignored) { }
 
         serverScheduler.cancelAllTasks();
