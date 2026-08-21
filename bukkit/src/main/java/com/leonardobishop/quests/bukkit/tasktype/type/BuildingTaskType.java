@@ -70,7 +70,8 @@ public final class BuildingTaskType extends BukkitTaskType {
         }
     }
 
-    // subtract if enabled
+    // Always subtract matching breaks. This prevents players from repeatedly
+    // placing and breaking the same blocks to farm building/delivery progress.
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
@@ -92,22 +93,16 @@ public final class BuildingTaskType extends BukkitTaskType {
 
             super.debug("Player mined block " + block.getType(), quest.getId(), task.getId(), player.getUniqueId());
 
-            boolean reverseIfBroken = TaskUtils.getConfigBoolean(task, "reverse-if-broken");
-            if (!reverseIfBroken) {
-                continue;
-            }
-
-            super.debug("reverse-if-broken is enabled, checking block", quest.getId(), task.getId(), player.getUniqueId());
+            super.debug("Anti-farm protection is checking the broken block", quest.getId(), task.getId(), player.getUniqueId());
 
             if (!TaskUtils.matchBlock(this, pendingTask, block, player.getUniqueId())) {
                 super.debug("Continuing...", quest.getId(), task.getId(), player.getUniqueId());
                 continue;
             }
 
-            boolean allowNegativeProgress = TaskUtils.getConfigBoolean(task, "allow-negative-progress", true);
             int currentProgress = TaskUtils.getIntegerTaskProgress(taskProgress);
-            if (currentProgress <= 0 && !allowNegativeProgress) {
-                super.debug("Task progress is already at zero and negative progress is disabled, skipping decrement", quest.getId(), task.getId(), player.getUniqueId());
+            if (currentProgress <= 0) {
+                super.debug("Task progress is already at zero, skipping decrement", quest.getId(), task.getId(), player.getUniqueId());
                 continue;
             }
 

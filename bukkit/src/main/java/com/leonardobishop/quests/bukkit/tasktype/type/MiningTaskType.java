@@ -175,7 +175,8 @@ public final class MiningTaskType extends BukkitTaskType {
         }
     }
 
-    // subtract if enabled
+    // Always subtract matching placements. This prevents players from repeatedly
+    // placing and breaking the same blocks to farm mining quest progress.
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
         Player player = event.getPlayer();
@@ -197,25 +198,15 @@ public final class MiningTaskType extends BukkitTaskType {
 
             super.debug("Player placed block " + block.getType(), quest.getId(), task.getId(), player.getUniqueId());
 
-            boolean reverseIfPlaced = TaskUtils.getConfigBoolean(task, "reverse-if-placed");
-            if (!reverseIfPlaced) {
-                continue;
-            }
-
-            super.debug("reverse-if-placed is enabled, checking block", quest.getId(), task.getId(), player.getUniqueId());
+            super.debug("Anti-farm protection is checking the placed block", quest.getId(), task.getId(), player.getUniqueId());
 
             if (!TaskUtils.matchBlock(this, pendingTask, block, player.getUniqueId())) {
                 super.debug("Continuing...", quest.getId(), task.getId(), player.getUniqueId());
                 continue;
             }
 
-            boolean allowNegativeProgress = TaskUtils.getConfigBoolean(task, "allow-negative-progress", true);
-            int currentProgress = TaskUtils.getIntegerTaskProgress(taskProgress);
-            if (currentProgress <= 0 && !allowNegativeProgress) {
-                super.debug("Task progress is already at zero and negative progress is disabled, skipping decrement", quest.getId(), task.getId(), player.getUniqueId());
-                continue;
-            }
-
+            // Negative progress is intentional here. A block placed at zero creates
+            // a one-block debt, so breaking that same block can only return to zero.
             int progress = TaskUtils.decrementIntegerTaskProgress(taskProgress);
             super.debug("Decrementing task progress (now " + progress + ")", quest.getId(), task.getId(), player.getUniqueId());
 
