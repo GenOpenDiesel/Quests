@@ -401,15 +401,11 @@ gui:
       - "&7(&a{quest}&7) and cannot."
       - "&7repeat it."
     type: "GREEN_STAINED_GLASS_PANE"
-  # Details appended once for every completed task on the green completed quest item.
-  # Available placeholders: {task}, {requirement}, {progress}, {amount}
-  quest-completed-task-header:
+  # The original quest description is appended below this header on the green
+  # completed quest item, so the player can still see what the quest required.
+  quest-completed-details-header:
     - ""
-    - "&a&l✓ UKOŃCZONE ZADANIA"
-  quest-completed-task-entry:
-    - "&a✓ &f{task}"
-    - "&7  Do wykonania: &f{requirement}"
-    - "&7  Wynik: &a{progress}/{amount}"
+    - "&a&l✓ CO TRZEBA BYŁO ZROBIĆ"
   no-started-quests:
     name: "&c&lNo Started Quests"
     lore:
