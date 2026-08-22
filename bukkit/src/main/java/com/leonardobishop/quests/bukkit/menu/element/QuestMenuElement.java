@@ -10,14 +10,18 @@ import com.leonardobishop.quests.bukkit.util.FormatUtils;
 import com.leonardobishop.quests.bukkit.util.MenuUtils;
 import com.leonardobishop.quests.bukkit.util.Messages;
 import com.leonardobishop.quests.bukkit.util.RestrictionUtils;
+import com.leonardobishop.quests.bukkit.util.TaskUtils;
 import com.leonardobishop.quests.bukkit.util.chat.Chat;
 import com.leonardobishop.quests.common.enums.QuestStartResult;
 import com.leonardobishop.quests.common.player.QPlayer;
 import com.leonardobishop.quests.common.player.questprogressfile.QuestProgress;
+import com.leonardobishop.quests.common.player.questprogressfile.TaskProgress;
 import com.leonardobishop.quests.common.quest.Quest;
+import com.leonardobishop.quests.common.quest.Task;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -108,6 +112,8 @@ public class QuestMenuElement extends MenuElement {
             } else {
                 display = config.getItem("gui.quest-completed-display");
             }
+            display = appendCompletedTaskDetails(display, questProgress,
+                    plugin.getServer().getPlayer(owner.getPlayerUUID()));
         } else if (status == QuestStartResult.QUEST_PLAYTIME_TOO_LOW || status == QuestStartResult.QUEST_MULTI_ACCOUNT) {
             Player player = plugin.getServer().getPlayer(owner.getPlayerUUID());
             placeholders.put("{quest}", Chat.legacyStrip(qItemStack.getName()));
@@ -142,6 +148,51 @@ public class QuestMenuElement extends MenuElement {
             return MenuUtils.applyPlaceholders(plugin, owner.getPlayerUUID(), qItemStack.toItemStack(quest, owner, questProgress));
         }
         return MenuUtils.applyPlaceholders(plugin, owner.getPlayerUUID(), display, placeholders);
+    }
+
+    @SuppressWarnings("deprecation")
+    private ItemStack appendCompletedTaskDetails(ItemStack display, QuestProgress questProgress, Player player) {
+        if (questProgress == null) {
+            return display;
+        }
+
+        ItemStack detailedDisplay = display.clone();
+        ItemMeta meta = detailedDisplay.getItemMeta();
+        if (meta == null) {
+            return detailedDisplay;
+        }
+
+        List<String> lore = meta.getLore() == null ? new ArrayList<>() : new ArrayList<>(meta.getLore());
+        List<String> header = config.getStringList("gui.quest-completed-task-header",
+                List.of("", "&a&l✓ UKOŃCZONE ZADANIA"));
+        List<String> entry = config.getStringList("gui.quest-completed-task-entry",
+                List.of("&a✓ &f{task}", "&7  Do wykonania: &f{requirement}", "&7  Wynik: &a{progress}/{amount}"));
+
+        boolean addedHeader = false;
+        for (Task task : quest.getTasks()) {
+            TaskProgress taskProgress = questProgress.getTaskProgressOrNull(task.getId());
+            if (taskProgress == null || !taskProgress.isCompleted()) {
+                continue;
+            }
+            if (!addedHeader) {
+                lore.addAll(Chat.legacyColor(header));
+                addedHeader = true;
+            }
+
+            TaskUtils.TaskCompletionDetails details = TaskUtils.getTaskCompletionDetails(
+                    player, quest, task, questProgress, taskProgress);
+            for (String line : entry) {
+                lore.add(Chat.legacyColor(line
+                        .replace("{task}", details.taskId())
+                        .replace("{requirement}", details.requirement())
+                        .replace("{progress}", details.progress())
+                        .replace("{amount}", details.amount())));
+            }
+        }
+
+        meta.setLore(lore);
+        detailedDisplay.setItemMeta(meta);
+        return detailedDisplay;
     }
 
     @Override

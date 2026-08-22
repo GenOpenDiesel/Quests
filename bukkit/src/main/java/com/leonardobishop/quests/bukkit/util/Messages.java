@@ -21,7 +21,7 @@ public enum Messages {
     QUEST_EXPIRE("messages.quest-expire", "&7Quest &c{quest} &7has expired."),
     QUEST_TRACK("messages.quest-track", "&7Tracking quest &c{quest}&7."),
     QUEST_TRACK_STOP("messages.quest-track-stop", "&7No longer tracking quest &c{quest}&7."),
-    TASK_COMPLETE_PREVIEW("messages.task-complete-preview", "&8&m--------------------------------\n&a&l✓ ZADANIE UKOŃCZONE\n&7Quest: &f{quest}\n&7Zadanie: &f{task} &8({type})\n&7Do wykonania: &f{requirement}\n&7Wynik: &a{progress}/{amount}\n&8&m--------------------------------"),
+    TASK_COMPLETE_PREVIEW("messages.task-complete-preview", "&8&m--------------------------------\n&a&l✓ ZADANIE UKOŃCZONE\n&7Quest: &f{quest}\n&7Zadanie: &f{task}\n&7Do wykonania: &f{requirement}\n&7Wynik: &a{progress}/{amount}\n&8&m--------------------------------"),
     QUEST_RANDOM_NONE("messages.quest-random-none", "&cYou have no quests which you can start."),
     QUEST_START_LIMIT("messages.quest-start-limit", "&7Players are limited to &c{limit} &7started quests at a time."),
     QUEST_START_DISABLED("messages.quest-start-disabled", "&7You cannot repeat this quest."),

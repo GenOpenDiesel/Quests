@@ -256,6 +256,30 @@ public class TaskUtils {
             return;
         }
 
+        TaskCompletionDetails details = getTaskCompletionDetails(player, quest, task, questProgress, taskProgress);
+
+        QItemStack questItem = plugin.getQItemStackRegistry().getQuestItemStack(quest);
+        String questName = questItem == null ? quest.getId() : Chat.legacyStrip(questItem.getName());
+
+        String message = Messages.TASK_COMPLETE_PREVIEW.getMessage()
+                .replace("{quest}", questName)
+                .replace("{task}", details.taskId())
+                .replace("{requirement}", details.requirement())
+                .replace("{progress}", details.progress())
+                .replace("{amount}", details.amount());
+
+        message = plugin.applyPlayerAndPAPI(BukkitQuestsPlugin.PAPIType.QUESTS, player, message);
+        for (String line : message.split("\\R", -1)) {
+            Chat.send(player, line, true);
+        }
+    }
+
+    /**
+     * Build the human-readable values shared by the task completion chat message
+     * and the completed quest item in the GUI.
+     */
+    public static TaskCompletionDetails getTaskCompletionDetails(@Nullable Player player, Quest quest, Task task,
+                                                                 QuestProgress questProgress, TaskProgress taskProgress) {
         Object configuredAmount = task.getConfigValue("amount");
         String amount = configuredAmount instanceof Number number ? formatNumber(number) : "1";
         String progress = taskProgress.getProgress() instanceof Number number ? formatNumber(number) : amount;
@@ -265,24 +289,10 @@ public class TaskUtils {
             requirement = amount + " x " + describeTaskTarget(task);
         }
 
-        QItemStack questItem = plugin.getQItemStackRegistry().getQuestItemStack(quest);
-        String questName = questItem == null ? quest.getId() : Chat.legacyStrip(questItem.getName());
-
-        String message = Messages.TASK_COMPLETE_PREVIEW.getMessage()
-                .replace("{quest}", questName)
-                .replace("{task}", task.getId())
-                .replace("{type}", task.getType())
-                .replace("{requirement}", requirement)
-                .replace("{progress}", progress)
-                .replace("{amount}", amount);
-
-        message = plugin.applyPlayerAndPAPI(BukkitQuestsPlugin.PAPIType.QUESTS, player, message);
-        for (String line : message.split("\\R", -1)) {
-            Chat.send(player, line, true);
-        }
+        return new TaskCompletionDetails(task.getId(), requirement, progress, amount);
     }
 
-    private static @Nullable String resolveProgressTitle(Player player, Quest quest, Task task,
+    private static @Nullable String resolveProgressTitle(@Nullable Player player, Quest quest, Task task,
                                                           QuestProgress questProgress, TaskProgress taskProgress) {
         String title = quest.getProgressPlaceholders().get(task.getId());
         if (title == null) {
@@ -299,7 +309,7 @@ public class TaskUtils {
         }
 
         title = QItemStack.processPlaceholders(plugin, title, questProgress, taskProgress);
-        if (plugin.getQuestsConfig().getBoolean("options.progress-use-placeholderapi", false)) {
+        if (player != null && plugin.getQuestsConfig().getBoolean("options.progress-use-placeholderapi", false)) {
             title = plugin.getPlaceholderAPIProcessor().apply(player, title);
         }
         return title;
@@ -412,6 +422,8 @@ public class TaskUtils {
     }
 
     public record PendingTask(Quest quest, Task task, QuestProgress questProgress, TaskProgress taskProgress) { }
+
+    public record TaskCompletionDetails(String taskId, String requirement, String progress, String amount) { }
 
     public static boolean matchBlock(@NotNull BukkitTaskType type, @NotNull PendingTask pendingTask, @Nullable Block block, @NotNull UUID player) {
         return matchBlock(type, pendingTask, block, player, "block", "blocks");

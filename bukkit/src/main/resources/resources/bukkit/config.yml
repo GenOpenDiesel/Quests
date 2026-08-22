@@ -401,6 +401,15 @@ gui:
       - "&7(&a{quest}&7) and cannot."
       - "&7repeat it."
     type: "GREEN_STAINED_GLASS_PANE"
+  # Details appended once for every completed task on the green completed quest item.
+  # Available placeholders: {task}, {requirement}, {progress}, {amount}
+  quest-completed-task-header:
+    - ""
+    - "&a&l✓ UKOŃCZONE ZADANIA"
+  quest-completed-task-entry:
+    - "&a✓ &f{task}"
+    - "&7  Do wykonania: &f{requirement}"
+    - "&7  Wynik: &a{progress}/{amount}"
   no-started-quests:
     name: "&c&lNo Started Quests"
     lore:
@@ -504,12 +513,12 @@ messages:
   quest-expire: "&7Quest &c{quest} &7has expired."
   quest-track: "&7Tracking quest &c{quest}&7."
   quest-track-stop: "&7No longer tracking quest &c{quest}&7."
-  # {quest} {task} {type} {requirement} {progress} {amount}
+  # {quest} {task} {requirement} {progress} {amount}
   task-complete-preview: |-
     &8&m--------------------------------
     &a&l✓ ZADANIE UKOŃCZONE
     &7Quest: &f{quest}
-    &7Zadanie: &f{task} &8({type})
+    &7Zadanie: &f{task}
     &7Do wykonania: &f{requirement}
     &7Wynik: &a{progress}/{amount}
     &8&m--------------------------------
