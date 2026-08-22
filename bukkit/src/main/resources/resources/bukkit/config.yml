@@ -59,6 +59,8 @@ options:
   actionbar:
     progress: false
     complete: false
+  # Show a detailed chat summary after each completed task.
+  task-complete-preview: true
   # Allow players to have multiple active quests.
   # You can set the default number of quests using the 'default' rank below.
   # To grant different quest limits to different people, you can define a 'quest-rank'
@@ -502,6 +504,15 @@ messages:
   quest-expire: "&7Quest &c{quest} &7has expired."
   quest-track: "&7Tracking quest &c{quest}&7."
   quest-track-stop: "&7No longer tracking quest &c{quest}&7."
+  # {quest} {task} {type} {requirement} {progress} {amount}
+  task-complete-preview: |-
+    &8&m--------------------------------
+    &a&l✓ ZADANIE UKOŃCZONE
+    &7Quest: &f{quest}
+    &7Zadanie: &f{task} &8({type})
+    &7Do wykonania: &f{requirement}
+    &7Wynik: &a{progress}/{amount}
+    &8&m--------------------------------
   quest-random-none: "&cYou have no quests which you can start."
   quest-start-limit: "&7Players are limited to &c{limit} &7started quests at a time."
   quest-start-disabled: "&7You cannot repeat this quest."

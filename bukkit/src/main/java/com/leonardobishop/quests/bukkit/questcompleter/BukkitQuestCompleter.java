@@ -2,6 +2,7 @@ package com.leonardobishop.quests.bukkit.questcompleter;
 
 
 import com.leonardobishop.quests.bukkit.BukkitQuestsPlugin;
+import com.leonardobishop.quests.bukkit.util.TaskUtils;
 import com.leonardobishop.quests.common.player.QPlayer;
 import com.leonardobishop.quests.common.player.questprogressfile.QuestProgress;
 import com.leonardobishop.quests.common.player.questprogressfile.QuestProgressFile;
@@ -94,6 +95,8 @@ public class BukkitQuestCompleter implements QuestCompleter, Runnable {
 
             if (!qPlayer.hasStartedQuest(quest)) return;
 
+            sendTaskCompletionPreviews(player, quest, questProgress);
+
             if (checkComplete(quest, questProgress)) {
                 qPlayer.completeQuest(quest);
             }
@@ -135,6 +138,15 @@ public class BukkitQuestCompleter implements QuestCompleter, Runnable {
         }
 
         return complete;
+    }
+
+    private void sendTaskCompletionPreviews(Player player, Quest quest, QuestProgress questProgress) {
+        for (Task task : quest.getTasks()) {
+            TaskProgress taskProgress = questProgress.getTaskProgressOrNull(task.getId());
+            if (taskProgress != null && taskProgress.consumeCompletionNotification()) {
+                TaskUtils.sendTaskCompletionPreview(player, quest, task, questProgress, taskProgress);
+            }
+        }
     }
 
     @Override

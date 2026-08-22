@@ -246,6 +246,87 @@ public class TaskUtils {
         }
     }
 
+    /**
+     * Show a one-shot chat summary when a task is completed. The configured progress
+     * placeholder is used as the human-readable requirement whenever one is available.
+     */
+    public static void sendTaskCompletionPreview(Player player, Quest quest, Task task,
+                                                 QuestProgress questProgress, TaskProgress taskProgress) {
+        if (!plugin.getQuestsConfig().getBoolean("options.task-complete-preview", true)) {
+            return;
+        }
+
+        Object configuredAmount = task.getConfigValue("amount");
+        String amount = configuredAmount instanceof Number number ? formatNumber(number) : "1";
+        String progress = taskProgress.getProgress() instanceof Number number ? formatNumber(number) : amount;
+
+        String requirement = resolveProgressTitle(player, quest, task, questProgress, taskProgress);
+        if (requirement == null || requirement.isBlank()) {
+            requirement = amount + " x " + describeTaskTarget(task);
+        }
+
+        QItemStack questItem = plugin.getQItemStackRegistry().getQuestItemStack(quest);
+        String questName = questItem == null ? quest.getId() : Chat.legacyStrip(questItem.getName());
+
+        String message = Messages.TASK_COMPLETE_PREVIEW.getMessage()
+                .replace("{quest}", questName)
+                .replace("{task}", task.getId())
+                .replace("{type}", task.getType())
+                .replace("{requirement}", requirement)
+                .replace("{progress}", progress)
+                .replace("{amount}", amount);
+
+        message = plugin.applyPlayerAndPAPI(BukkitQuestsPlugin.PAPIType.QUESTS, player, message);
+        for (String line : message.split("\\R", -1)) {
+            Chat.send(player, line, true);
+        }
+    }
+
+    private static @Nullable String resolveProgressTitle(Player player, Quest quest, Task task,
+                                                          QuestProgress questProgress, TaskProgress taskProgress) {
+        String title = quest.getProgressPlaceholders().get(task.getId());
+        if (title == null) {
+            title = quest.getProgressPlaceholders().get(task.getType());
+        }
+        if (title == null) {
+            title = quest.getProgressPlaceholders().get("*");
+        }
+        if (title == null && plugin.getQuestsConfig().getBoolean("options.use-progress-as-fallback", true)) {
+            title = quest.getPlaceholders().get("progress");
+        }
+        if (title == null) {
+            return null;
+        }
+
+        title = QItemStack.processPlaceholders(plugin, title, questProgress, taskProgress);
+        if (plugin.getQuestsConfig().getBoolean("options.progress-use-placeholderapi", false)) {
+            title = plugin.getPlaceholderAPIProcessor().apply(player, title);
+        }
+        return title;
+    }
+
+    private static String describeTaskTarget(Task task) {
+        for (String key : List.of("block", "blocks", "item", "entity", "entities", "mob", "mobs",
+                "permission", "command", "npc-name", "npc-id")) {
+            Object value = task.getConfigValue(key);
+            if (value instanceof ItemStack itemStack) {
+                return itemStack.getType().name();
+            }
+            if (value != null) {
+                return String.valueOf(value);
+            }
+        }
+        return task.getType();
+    }
+
+    private static String formatNumber(Number number) {
+        double value = number.doubleValue();
+        if (value == Math.rint(value)) {
+            return Long.toString(number.longValue());
+        }
+        return number.toString();
+    }
+
     private static void sendTrackAdvancementActionBar(Player player, String title) {
         plugin.getActionBarHandle().sendActionBar(player, title);
     }

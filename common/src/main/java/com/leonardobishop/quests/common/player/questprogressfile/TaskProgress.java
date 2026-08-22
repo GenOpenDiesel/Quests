@@ -19,6 +19,7 @@ public final class TaskProgress {
     private @Nullable Object progress;
     private boolean completed;
     private boolean modified;
+    private boolean completionNotificationPending;
 
     /**
      * Constructs a TaskProgress.
@@ -37,6 +38,7 @@ public final class TaskProgress {
         this.progress = progress;
         this.completed = completed;
         this.modified = modified;
+        this.completionNotificationPending = false;
     }
 
     /**
@@ -123,8 +125,26 @@ public final class TaskProgress {
         this.modified = true;
 
         if (completed) {
+            this.completionNotificationPending = true;
             this.questProgress.queueForCompletionTest();
+        } else {
+            this.completionNotificationPending = false;
         }
+    }
+
+    /**
+     * Consume the one-shot notification flag created when this task changes from
+     * incomplete to complete. Loaded progress does not create a notification.
+     *
+     * @return whether a new completion notification was waiting
+     */
+    public boolean consumeCompletionNotification() {
+        if (!this.completionNotificationPending) {
+            return false;
+        }
+
+        this.completionNotificationPending = false;
+        return true;
     }
 
     /**

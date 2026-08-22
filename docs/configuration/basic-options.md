@@ -129,6 +129,22 @@ options:
     complete: false
 ```
 
+## Task completion preview
+
+*`options.task-complete-preview`*
+
+Shows a detailed chat summary whenever an individual task is completed. The
+summary includes the quest name, task ID and type, the configured progress
+description, and the final result. The text can be changed at
+`messages.task-complete-preview` using `{quest}`, `{task}`, `{type}`,
+`{requirement}`, `{progress}`, and `{amount}`.
+
+```yaml
+options:
+  # ...
+  task-complete-preview: true
+```
+
 ## Quest started limit
 
 *`options.quest-started-limit`*
