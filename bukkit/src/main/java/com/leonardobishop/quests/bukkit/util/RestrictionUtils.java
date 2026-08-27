@@ -104,8 +104,15 @@ public final class RestrictionUtils {
         final long playtime = Math.max(0, manager.getPlaytime(player));
         final long remaining = manager.getRemainingPlaytime(player, quest);
 
+        final String category = requirement != null ? requirement.displayName() : String.valueOf(quest.getCategoryId());
+        final String categoryColored = Chat.legacyColor(category);
+
         final Map<String, String> placeholders = new HashMap<>();
-        placeholders.put("{category}", requirement != null ? requirement.displayName() : String.valueOf(quest.getCategoryId()));
+        // The placeholders are substituted into text which has already been coloured (the GUI item is
+        // built and coloured before the substitution happens), so the colour codes of the category
+        // have to be translated here - otherwise they are shown literally, as "&cTrudne".
+        placeholders.put("{category}", categoryColored);
+        placeholders.put("{categoryplain}", Chat.legacyStrip(categoryColored));
         placeholders.put("{categoryid}", String.valueOf(quest.getCategoryId()));
         placeholders.put("{required-playtime}", FormatUtils.time(TimeUnit.MINUTES.toSeconds(required)));
         placeholders.put("{playtime}", FormatUtils.time(TimeUnit.MINUTES.toSeconds(playtime)));
