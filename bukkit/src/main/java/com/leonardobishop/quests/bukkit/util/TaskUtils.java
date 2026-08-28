@@ -283,13 +283,11 @@ public class TaskUtils {
     }
 
     /**
-     * Warn the player that the block they just placed cancelled out mining progress.
+     * Warn the player that a block placed and then broken at the same coordinates did
+     * not increase mining progress.
      * <p>
-     * The first warnings are only a vague title, so that a player who happens to build with a
-     * quest material is told that something is off without being told how the anti-farm check
-     * works. The chat message, which spells the mechanic out, is only sent to a player who keeps
-     * placing and breaking in one spot - at that point they are farming the task on purpose
-     * anyway, and the explanation is what makes them stop.
+     * The first warnings are only a short title. The detailed chat message is sent only when a
+     * player repeatedly triggers the check in one spot.
      */
     public static void sendAntiFarmWarning(Player player, Quest quest, Task task, TaskProgress taskProgress, Block block) {
         if (!plugin.getQuestsConfig().getBoolean("options.antifarm-warning", true)) {
@@ -1362,7 +1360,7 @@ public class TaskUtils {
     }
 
     /**
-     * Per player record of how stubbornly quest blocks are being placed back down.
+     * Per player record of repeated place/break attempts blocked by the mining task.
      * Guarded by its own monitor; block place events arrive from region threads on Folia.
      */
     private static final class AntiFarmState {

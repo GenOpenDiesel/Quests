@@ -145,6 +145,21 @@ options:
   task-complete-preview: true
 ```
 
+## Mining place/break protection
+
+*`options.antifarm-place-break-window-seconds`*
+
+Prevents a player from increasing a mining task by placing a block and immediately breaking it
+again at the exact same coordinates. The placement itself never removes progress, and different
+coordinates are unaffected. The default window is 10 seconds; set it to `0` to disable the check.
+
+```yaml
+options:
+  # ...
+  antifarm-place-break-window-seconds: 10
+  antifarm-warning: true
+```
+
 ## Quest started limit
 
 *`options.quest-started-limit`*

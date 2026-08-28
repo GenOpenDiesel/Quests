@@ -26,6 +26,7 @@ public final class MiningTaskType extends BukkitTaskType {
 
     private final BukkitQuestsPlugin plugin;
     private final Table<String, String, QuestItem> fixedQuestItemCache = HashBasedTable.create();
+    private final RecentBlockPlacementTracker recentBlockPlacements = new RecentBlockPlacementTracker();
 
     public MiningTaskType(BukkitQuestsPlugin plugin) {
         super("blockbreak", TaskUtils.TASK_ATTRIBUTION_STRING, "Break a set amount of a block.", "blockbreakcertain");
@@ -64,6 +65,11 @@ public final class MiningTaskType extends BukkitTaskType {
         Block block = event.getBlock();
         ItemStack item = plugin.getVersionSpecificHandler().getItemInMainHand(player);
         boolean silkTouchPresent = item != null && item.getEnchantmentLevel(Enchantment.SILK_TOUCH) > 0;
+        long antiFarmWindow = getAntiFarmWindowMillis();
+        boolean recentlyPlacedHere = antiFarmWindow > 0 && recentBlockPlacements.consume(
+                player.getUniqueId(), block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(),
+                block.getType().name(), System.currentTimeMillis(), antiFarmWindow);
+        boolean antiFarmWarningSent = false;
 
         for (TaskUtils.PendingTask pendingTask : TaskUtils.getApplicableTasks(player, qPlayer, this, TaskConstraintSet.ALL)) {
             Quest quest = pendingTask.quest();
@@ -107,6 +113,16 @@ public final class MiningTaskType extends BukkitTaskType {
                 } else {
                     super.debug("Item matches required item", quest.getId(), task.getId(), player.getUniqueId());
                 }
+            }
+
+            if (recentlyPlacedHere) {
+                super.debug("Anti-farm protection ignored a recently placed block at the same coordinates",
+                        quest.getId(), task.getId(), player.getUniqueId());
+                if (!antiFarmWarningSent) {
+                    TaskUtils.sendAntiFarmWarning(player, quest, task, taskProgress, block);
+                    antiFarmWarningSent = true;
+                }
+                continue;
             }
 
             boolean playerBlockTrackerEnabled = TaskUtils.getConfigBoolean(task, "check-playerblocktracker");
@@ -175,8 +191,9 @@ public final class MiningTaskType extends BukkitTaskType {
         }
     }
 
-    // Always subtract matching placements. This prevents players from repeatedly
-    // placing and breaking the same blocks to farm mining quest progress.
+    // Remember the exact coordinates briefly. Placing a quest block no longer removes
+    // legitimate progress; only immediately breaking one's own block in the same spot
+    // is ignored by onBlockBreak.
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
         Player player = event.getPlayer();
@@ -184,35 +201,21 @@ public final class MiningTaskType extends BukkitTaskType {
             return;
         }
 
-        QPlayer qPlayer = plugin.getPlayerManager().getPlayer(player.getUniqueId());
-        if (qPlayer == null) {
+        if (plugin.getPlayerManager().getPlayer(player.getUniqueId()) == null) {
             return;
         }
 
         Block block = event.getBlock();
-
-        for (TaskUtils.PendingTask pendingTask : TaskUtils.getApplicableTasks(player, qPlayer, this, TaskConstraintSet.ALL)) {
-            Quest quest = pendingTask.quest();
-            Task task = pendingTask.task();
-            TaskProgress taskProgress = pendingTask.taskProgress();
-
-            super.debug("Player placed block " + block.getType(), quest.getId(), task.getId(), player.getUniqueId());
-
-            super.debug("Anti-farm protection is checking the placed block", quest.getId(), task.getId(), player.getUniqueId());
-
-            if (!TaskUtils.matchBlock(this, pendingTask, block, player.getUniqueId())) {
-                super.debug("Continuing...", quest.getId(), task.getId(), player.getUniqueId());
-                continue;
-            }
-
-            // Negative progress is intentional here. A block placed at zero creates
-            // a one-block debt, so breaking that same block can only return to zero.
-            int progress = TaskUtils.decrementIntegerTaskProgress(taskProgress);
-            super.debug("Decrementing task progress (now " + progress + ")", quest.getId(), task.getId(), player.getUniqueId());
-
-            int amount = (int) task.getConfigValue("amount");
-            TaskUtils.sendTrackAdvancement(player, quest, task, pendingTask, amount);
-            TaskUtils.sendAntiFarmWarning(player, quest, task, taskProgress, block);
+        long antiFarmWindow = getAntiFarmWindowMillis();
+        if (antiFarmWindow > 0) {
+            recentBlockPlacements.record(player.getUniqueId(), block.getWorld().getUID(),
+                    block.getX(), block.getY(), block.getZ(), block.getType().name(),
+                    System.currentTimeMillis(), antiFarmWindow);
         }
+    }
+
+    private long getAntiFarmWindowMillis() {
+        int seconds = plugin.getQuestsConfig().getInt("options.antifarm-place-break-window-seconds", 10);
+        return Math.max(0L, seconds) * 1_000L;
     }
 }

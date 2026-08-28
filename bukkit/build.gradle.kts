@@ -161,6 +161,13 @@ dependencies {
     implementation("com.carrotsearch:hppc:0.10.0")
     // bungeecord-chat
     implementation("net.md-5:bungeecord-chat:1.21-R0.4") { isTransitive = false }
+
+    testImplementation("org.junit.jupiter:junit-jupiter:6.0.2")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 tasks.shadowJar {
