@@ -33,11 +33,12 @@ merged into one. Both names can be used to refer to this task.
 | `allow-negative-progress`  | Compatibility option retained for existing quest files.                                       | Boolean                        | No       | true    | Mining anti-farm protection no longer creates negative progress.                                                                                                                                                                                                                |
 | `worlds`                   | Worlds which should count towards the progress.                                                | List of world names            | No       | \-      | \-                                                                                                                                                                                                                                                                              |
 
-This fork remembers blocks placed by each player for 10 seconds by default. If the same player
-breaks the same material at the exact same world coordinates during that window, the break does
-not increase mining-task progress. Placing a block never subtracts existing progress, and blocks
-at other coordinates are unaffected. The window is configurable globally with
-`options.antifarm-place-break-window-seconds`; set it to `0` to disable the check.
+This fork counts complete place/break cycles per player, material, world, and exact coordinates.
+The first five cycles at one location are allowed by default; the sixth and later breaks do not
+increase mining-task progress. Placing a block never subtracts existing progress, and other
+coordinates have separate counters. A counter resets after 10 minutes without another cycle.
+The limits are configurable globally with `options.antifarm-place-break-max-cycles-per-location`
+and `options.antifarm-place-break-reset-seconds`; set the maximum cycles to `0` to disable the check.
 
 ## Examples
 

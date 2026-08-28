@@ -283,8 +283,8 @@ public class TaskUtils {
     }
 
     /**
-     * Warn the player that a block placed and then broken at the same coordinates did
-     * not increase mining progress.
+     * Warn the player that repeatedly cycling a block at the same coordinates no longer
+     * increases mining progress.
      * <p>
      * The first warnings are only a short title. The detailed chat message is sent only when a
      * player repeatedly triggers the check in one spot.

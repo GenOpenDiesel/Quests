@@ -147,18 +147,22 @@ options:
 
 ## Mining place/break protection
 
-*`options.antifarm-place-break-window-seconds`*
+*`options.antifarm-place-break-max-cycles-per-location`*
 
-Prevents a player from increasing a mining task by placing a block and immediately breaking it
-again at the exact same coordinates. The placement itself never removes progress, and different
-coordinates are unaffected. The default window is 10 seconds; set it to `0` to disable the check.
+Detects a player repeatedly placing and breaking the same material at exact world coordinates.
+The first five complete cycles are allowed; the sixth and later breaks do not increase mining
+progress. Different coordinates are counted separately, and placing a block never removes
+existing progress. After 10 minutes without another cycle at that location, its counter resets.
 
 ```yaml
 options:
   # ...
-  antifarm-place-break-window-seconds: 10
+  antifarm-place-break-max-cycles-per-location: 5
+  antifarm-place-break-reset-seconds: 600
   antifarm-warning: true
 ```
+
+Set `antifarm-place-break-max-cycles-per-location` to `0` to disable the check.
 
 ## Quest started limit
 

@@ -26,7 +26,7 @@ public final class MiningTaskType extends BukkitTaskType {
 
     private final BukkitQuestsPlugin plugin;
     private final Table<String, String, QuestItem> fixedQuestItemCache = HashBasedTable.create();
-    private final RecentBlockPlacementTracker recentBlockPlacements = new RecentBlockPlacementTracker();
+    private final RepeatedBlockCycleTracker repeatedBlockCycles = new RepeatedBlockCycleTracker();
 
     public MiningTaskType(BukkitQuestsPlugin plugin) {
         super("blockbreak", TaskUtils.TASK_ATTRIBUTION_STRING, "Break a set amount of a block.", "blockbreakcertain");
@@ -65,10 +65,11 @@ public final class MiningTaskType extends BukkitTaskType {
         Block block = event.getBlock();
         ItemStack item = plugin.getVersionSpecificHandler().getItemInMainHand(player);
         boolean silkTouchPresent = item != null && item.getEnchantmentLevel(Enchantment.SILK_TOUCH) > 0;
-        long antiFarmWindow = getAntiFarmWindowMillis();
-        boolean recentlyPlacedHere = antiFarmWindow > 0 && recentBlockPlacements.consume(
+        int allowedCycles = getAllowedPlaceBreakCycles();
+        long antiFarmReset = getAntiFarmResetMillis();
+        boolean repeatedPlaceBreakHere = allowedCycles > 0 && repeatedBlockCycles.registerBreak(
                 player.getUniqueId(), block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(),
-                block.getType().name(), System.currentTimeMillis(), antiFarmWindow);
+                block.getType().name(), System.currentTimeMillis(), antiFarmReset, allowedCycles);
         boolean antiFarmWarningSent = false;
 
         for (TaskUtils.PendingTask pendingTask : TaskUtils.getApplicableTasks(player, qPlayer, this, TaskConstraintSet.ALL)) {
@@ -115,8 +116,8 @@ public final class MiningTaskType extends BukkitTaskType {
                 }
             }
 
-            if (recentlyPlacedHere) {
-                super.debug("Anti-farm protection ignored a recently placed block at the same coordinates",
+            if (repeatedPlaceBreakHere) {
+                super.debug("Anti-farm protection ignored repeated place/break cycles at the same coordinates",
                         quest.getId(), task.getId(), player.getUniqueId());
                 if (!antiFarmWarningSent) {
                     TaskUtils.sendAntiFarmWarning(player, quest, task, taskProgress, block);
@@ -191,9 +192,8 @@ public final class MiningTaskType extends BukkitTaskType {
         }
     }
 
-    // Remember the exact coordinates briefly. Placing a quest block no longer removes
-    // legitimate progress; only immediately breaking one's own block in the same spot
-    // is ignored by onBlockBreak.
+    // Count complete place/break cycles at exact coordinates. A few corrections are harmless;
+    // only repeatedly recycling the same block in one spot is ignored by onBlockBreak.
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
         Player player = event.getPlayer();
@@ -206,16 +206,21 @@ public final class MiningTaskType extends BukkitTaskType {
         }
 
         Block block = event.getBlock();
-        long antiFarmWindow = getAntiFarmWindowMillis();
-        if (antiFarmWindow > 0) {
-            recentBlockPlacements.record(player.getUniqueId(), block.getWorld().getUID(),
+        int allowedCycles = getAllowedPlaceBreakCycles();
+        if (allowedCycles > 0) {
+            repeatedBlockCycles.recordPlacement(player.getUniqueId(), block.getWorld().getUID(),
                     block.getX(), block.getY(), block.getZ(), block.getType().name(),
-                    System.currentTimeMillis(), antiFarmWindow);
+                    System.currentTimeMillis(), getAntiFarmResetMillis());
         }
     }
 
-    private long getAntiFarmWindowMillis() {
-        int seconds = plugin.getQuestsConfig().getInt("options.antifarm-place-break-window-seconds", 10);
-        return Math.max(0L, seconds) * 1_000L;
+    private int getAllowedPlaceBreakCycles() {
+        return Math.max(0, plugin.getQuestsConfig().getInt(
+                "options.antifarm-place-break-max-cycles-per-location", 5));
+    }
+
+    private long getAntiFarmResetMillis() {
+        int seconds = plugin.getQuestsConfig().getInt("options.antifarm-place-break-reset-seconds", 600);
+        return Math.max(1L, seconds) * 1_000L;
     }
 }

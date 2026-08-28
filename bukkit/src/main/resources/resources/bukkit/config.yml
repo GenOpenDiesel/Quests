@@ -61,10 +61,12 @@ options:
     complete: false
   # Show a detailed chat summary after each completed task.
   task-complete-preview: true
-  # Ignore a mining-task block when the same player has just placed the same material
-  # at these exact coordinates. Placing blocks never removes existing progress.
+  # Allow this many complete place/break cycles by one player at exact coordinates.
+  # From the next cycle onward, breaking that repeatedly recycled block does not count.
   # Set to 0 to disable this lightweight anti-farm check.
-  antifarm-place-break-window-seconds: 10
+  antifarm-place-break-max-cycles-per-location: 5
+  # Forget the counter after this many seconds without another cycle at that location.
+  antifarm-place-break-reset-seconds: 600
   # Show a throttled warning when the place/break check blocks task progress.
   antifarm-warning: true
   # Allow players to have multiple active quests.
@@ -502,7 +504,7 @@ gui:
 titles:
   task-antifarm:
     title: "&e&l⚠ Nie ma tak łatwo"
-    subtitle: "&7Ten postawiony przed chwilą blok się nie liczy"
+    subtitle: "&7Niszczenie w kółko tego samego bloku się nie liczy"
   quest-start:
     title: "&cQuest Started"
     subtitle: "&7{quest}"
@@ -530,7 +532,7 @@ messages:
   # {quest} {task} {progress} {amount}
   task-antifarm-warning: |-
     &c&l⚠ &7Ten blok nie zwiększył postępu zadania &f{task} &7(&f{quest}&7): &e{progress}&7/&f{amount}&7.
-    &7Postawiłeś go przed chwilą w tym samym miejscu. Samo stawianie bloków nie cofa postępu.
+    &7Za wiele razy stawiasz i niszczysz ten sam blok na tych samych koordynatach. Samo stawianie bloków nie cofa postępu.
   quest-random-none: "&cYou have no quests which you can start."
   quest-start-limit: "&7Players are limited to &c{limit} &7started quests at a time."
   quest-start-disabled: "&7You cannot repeat this quest."
