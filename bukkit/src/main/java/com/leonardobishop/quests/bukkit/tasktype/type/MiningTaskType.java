@@ -212,6 +212,7 @@ public final class MiningTaskType extends BukkitTaskType {
 
             int amount = (int) task.getConfigValue("amount");
             TaskUtils.sendTrackAdvancement(player, quest, task, pendingTask, amount);
+            TaskUtils.sendAntiFarmWarning(player, quest, task, taskProgress, block);
         }
     }
 }

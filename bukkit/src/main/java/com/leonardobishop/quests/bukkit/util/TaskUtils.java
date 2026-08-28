@@ -43,15 +43,23 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 @SuppressWarnings({"deprecation", "BooleanMethodIsAlwaysInverted"})
 public class TaskUtils {
 
     public static final String TASK_ATTRIBUTION_STRING = "<built-in>";
+    private static final long ANTI_FARM_HINT_COOLDOWN = 8_000L; // between two titles
+    private static final long ANTI_FARM_EXPLAIN_COOLDOWN = 600_000L; // between two chat messages
+    private static final long ANTI_FARM_WINDOW = 180_000L; // placements older than this are forgotten
+    private static final int ANTI_FARM_EXPLAIN_THRESHOLD = 8; // placements in one spot before explaining
+    private static final int ANTI_FARM_SPOT_RADIUS = 8; // blocks; how far "the same spot" reaches
+    private static final Map<UUID, AntiFarmState> antiFarmWarnings = new ConcurrentHashMap<>();
     private static final BukkitQuestsPlugin plugin;
 
     static {
@@ -267,6 +275,71 @@ public class TaskUtils {
                 .replace("{requirement}", details.requirement())
                 .replace("{progress}", details.progress())
                 .replace("{amount}", details.amount());
+
+        message = plugin.applyPlayerAndPAPI(BukkitQuestsPlugin.PAPIType.QUESTS, player, message);
+        for (String line : message.split("\\R", -1)) {
+            Chat.send(player, line, true);
+        }
+    }
+
+    /**
+     * Warn the player that the block they just placed cancelled out mining progress.
+     * <p>
+     * The first warnings are only a vague title, so that a player who happens to build with a
+     * quest material is told that something is off without being told how the anti-farm check
+     * works. The chat message, which spells the mechanic out, is only sent to a player who keeps
+     * placing and breaking in one spot - at that point they are farming the task on purpose
+     * anyway, and the explanation is what makes them stop.
+     */
+    public static void sendAntiFarmWarning(Player player, Quest quest, Task task, TaskProgress taskProgress, Block block) {
+        if (!plugin.getQuestsConfig().getBoolean("options.antifarm-warning", true)) {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        AntiFarmState state = antiFarmWarnings.compute(player.getUniqueId(),
+                (uuid, existing) -> existing == null ? new AntiFarmState() : existing);
+
+        boolean explain;
+        synchronized (state) {
+            state.track(block, now);
+            explain = state.shouldExplain(now);
+            if (explain) {
+                state.explained(now);
+            } else if (!state.shouldHint(now)) {
+                return;
+            } else {
+                state.hinted(now);
+            }
+        }
+
+        if (antiFarmWarnings.size() > 128) { // players who logged out keep no state
+            antiFarmWarnings.values().removeIf(other -> other.isStale(now));
+        }
+
+        if (!explain) {
+            String title = Messages.TASK_ANTIFARM_HINT_TITLE.getMessageLegacyColor();
+            String subtitle = Messages.TASK_ANTIFARM_HINT_SUBTITLE.getMessageLegacyColor();
+            if (!title.isEmpty() || !subtitle.isEmpty()) {
+                plugin.getTitleHandle().sendTitle(player,
+                        plugin.applyPlayerAndPAPI(BukkitQuestsPlugin.PAPIType.QUESTS, player, title),
+                        plugin.applyPlayerAndPAPI(BukkitQuestsPlugin.PAPIType.QUESTS, player, subtitle));
+            }
+            return;
+        }
+
+        QItemStack questItem = plugin.getQItemStackRegistry().getQuestItemStack(quest);
+        String questName = questItem == null ? quest.getId() : Chat.legacyStrip(questItem.getName());
+
+        Object configuredAmount = task.getConfigValue("amount");
+        String amount = configuredAmount instanceof Number number ? formatNumber(number) : "1";
+        String progress = taskProgress.getProgress() instanceof Number number ? formatNumber(number) : "0";
+
+        String message = Messages.TASK_ANTIFARM_WARNING.getMessage()
+                .replace("{quest}", questName)
+                .replace("{task}", task.getId())
+                .replace("{progress}", progress)
+                .replace("{amount}", amount);
 
         message = plugin.applyPlayerAndPAPI(BukkitQuestsPlugin.PAPIType.QUESTS, player, message);
         for (String line : message.split("\\R", -1)) {
@@ -1286,5 +1359,63 @@ public class TaskUtils {
                 problems.add(new ConfigProblem(ConfigProblem.ConfigProblemType.ERROR, "Expected at least one correct value for " + path, null, stringPath));
             }
         };
+    }
+
+    /**
+     * Per player record of how stubbornly quest blocks are being placed back down.
+     * Guarded by its own monitor; block place events arrive from region threads on Folia.
+     */
+    private static final class AntiFarmState {
+
+        private String world;
+        private int x, y, z;
+        private int placements;
+        private long windowStart;
+        private long lastActivity;
+        private long lastHint;
+        private long lastExplain;
+
+        private void track(Block block, long now) {
+            lastActivity = now;
+
+            if (world == null || !world.equals(block.getWorld().getName())
+                    || now - windowStart > ANTI_FARM_WINDOW
+                    || Math.abs(block.getX() - x) > ANTI_FARM_SPOT_RADIUS
+                    || Math.abs(block.getY() - y) > ANTI_FARM_SPOT_RADIUS
+                    || Math.abs(block.getZ() - z) > ANTI_FARM_SPOT_RADIUS) {
+                world = block.getWorld().getName();
+                x = block.getX();
+                y = block.getY();
+                z = block.getZ();
+                placements = 1;
+                windowStart = now;
+                return;
+            }
+
+            placements++;
+        }
+
+        private boolean shouldHint(long now) {
+            return now - lastHint >= ANTI_FARM_HINT_COOLDOWN;
+        }
+
+        private void hinted(long now) {
+            lastHint = now;
+        }
+
+        private boolean shouldExplain(long now) {
+            return placements >= ANTI_FARM_EXPLAIN_THRESHOLD && now - lastExplain >= ANTI_FARM_EXPLAIN_COOLDOWN;
+        }
+
+        private void explained(long now) {
+            lastExplain = now;
+            lastHint = now;
+            placements = 0;
+            windowStart = now;
+        }
+
+        private boolean isStale(long now) {
+            return now - lastActivity >= ANTI_FARM_EXPLAIN_COOLDOWN;
+        }
     }
 }
