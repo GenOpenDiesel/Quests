@@ -47,19 +47,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 @SuppressWarnings({"deprecation", "BooleanMethodIsAlwaysInverted"})
 public class TaskUtils {
 
     public static final String TASK_ATTRIBUTION_STRING = "<built-in>";
-    private static final long ANTI_FARM_HINT_COOLDOWN = 8_000L; // between two titles
-    private static final long ANTI_FARM_EXPLAIN_COOLDOWN = 600_000L; // between two chat messages
-    private static final long ANTI_FARM_WINDOW = 180_000L; // placements older than this are forgotten
-    private static final int ANTI_FARM_EXPLAIN_THRESHOLD = 8; // placements in one spot before explaining
-    private static final int ANTI_FARM_SPOT_RADIUS = 8; // blocks; how far "the same spot" reaches
-    private static final Map<UUID, AntiFarmState> antiFarmWarnings = new ConcurrentHashMap<>();
     private static final BukkitQuestsPlugin plugin;
 
     static {
@@ -275,69 +268,6 @@ public class TaskUtils {
                 .replace("{requirement}", details.requirement())
                 .replace("{progress}", details.progress())
                 .replace("{amount}", details.amount());
-
-        message = plugin.applyPlayerAndPAPI(BukkitQuestsPlugin.PAPIType.QUESTS, player, message);
-        for (String line : message.split("\\R", -1)) {
-            Chat.send(player, line, true);
-        }
-    }
-
-    /**
-     * Warn the player that repeatedly cycling a block at the same coordinates no longer
-     * increases mining progress.
-     * <p>
-     * The first warnings are only a short title. The detailed chat message is sent only when a
-     * player repeatedly triggers the check in one spot.
-     */
-    public static void sendAntiFarmWarning(Player player, Quest quest, Task task, TaskProgress taskProgress, Block block) {
-        if (!plugin.getQuestsConfig().getBoolean("options.antifarm-warning", true)) {
-            return;
-        }
-
-        long now = System.currentTimeMillis();
-        AntiFarmState state = antiFarmWarnings.compute(player.getUniqueId(),
-                (uuid, existing) -> existing == null ? new AntiFarmState() : existing);
-
-        boolean explain;
-        synchronized (state) {
-            state.track(block, now);
-            explain = state.shouldExplain(now);
-            if (explain) {
-                state.explained(now);
-            } else if (!state.shouldHint(now)) {
-                return;
-            } else {
-                state.hinted(now);
-            }
-        }
-
-        if (antiFarmWarnings.size() > 128) { // players who logged out keep no state
-            antiFarmWarnings.values().removeIf(other -> other.isStale(now));
-        }
-
-        if (!explain) {
-            String title = Messages.TASK_ANTIFARM_HINT_TITLE.getMessageLegacyColor();
-            String subtitle = Messages.TASK_ANTIFARM_HINT_SUBTITLE.getMessageLegacyColor();
-            if (!title.isEmpty() || !subtitle.isEmpty()) {
-                plugin.getTitleHandle().sendTitle(player,
-                        plugin.applyPlayerAndPAPI(BukkitQuestsPlugin.PAPIType.QUESTS, player, title),
-                        plugin.applyPlayerAndPAPI(BukkitQuestsPlugin.PAPIType.QUESTS, player, subtitle));
-            }
-            return;
-        }
-
-        QItemStack questItem = plugin.getQItemStackRegistry().getQuestItemStack(quest);
-        String questName = questItem == null ? quest.getId() : Chat.legacyStrip(questItem.getName());
-
-        Object configuredAmount = task.getConfigValue("amount");
-        String amount = configuredAmount instanceof Number number ? formatNumber(number) : "1";
-        String progress = taskProgress.getProgress() instanceof Number number ? formatNumber(number) : "0";
-
-        String message = Messages.TASK_ANTIFARM_WARNING.getMessage()
-                .replace("{quest}", questName)
-                .replace("{task}", task.getId())
-                .replace("{progress}", progress)
-                .replace("{amount}", amount);
 
         message = plugin.applyPlayerAndPAPI(BukkitQuestsPlugin.PAPIType.QUESTS, player, message);
         for (String line : message.split("\\R", -1)) {
@@ -1359,61 +1289,4 @@ public class TaskUtils {
         };
     }
 
-    /**
-     * Per player record of repeated place/break attempts blocked by the mining task.
-     * Guarded by its own monitor; block place events arrive from region threads on Folia.
-     */
-    private static final class AntiFarmState {
-
-        private String world;
-        private int x, y, z;
-        private int placements;
-        private long windowStart;
-        private long lastActivity;
-        private long lastHint;
-        private long lastExplain;
-
-        private void track(Block block, long now) {
-            lastActivity = now;
-
-            if (world == null || !world.equals(block.getWorld().getName())
-                    || now - windowStart > ANTI_FARM_WINDOW
-                    || Math.abs(block.getX() - x) > ANTI_FARM_SPOT_RADIUS
-                    || Math.abs(block.getY() - y) > ANTI_FARM_SPOT_RADIUS
-                    || Math.abs(block.getZ() - z) > ANTI_FARM_SPOT_RADIUS) {
-                world = block.getWorld().getName();
-                x = block.getX();
-                y = block.getY();
-                z = block.getZ();
-                placements = 1;
-                windowStart = now;
-                return;
-            }
-
-            placements++;
-        }
-
-        private boolean shouldHint(long now) {
-            return now - lastHint >= ANTI_FARM_HINT_COOLDOWN;
-        }
-
-        private void hinted(long now) {
-            lastHint = now;
-        }
-
-        private boolean shouldExplain(long now) {
-            return placements >= ANTI_FARM_EXPLAIN_THRESHOLD && now - lastExplain >= ANTI_FARM_EXPLAIN_COOLDOWN;
-        }
-
-        private void explained(long now) {
-            lastExplain = now;
-            lastHint = now;
-            placements = 0;
-            windowStart = now;
-        }
-
-        private boolean isStale(long now) {
-            return now - lastActivity >= ANTI_FARM_EXPLAIN_COOLDOWN;
-        }
-    }
 }

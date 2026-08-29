@@ -37,6 +37,7 @@ This fork counts complete place/break cycles per player, material, world, and ex
 The first five cycles at one location are allowed by default; the sixth and later breaks do not
 increase mining-task progress. Placing a block never subtracts existing progress, and other
 coordinates have separate counters. A counter resets after 10 minutes without another cycle.
+Exceeding the limit also kicks the player and appends the incident to `plugins/Quests/logi.txt`.
 The limits are configurable globally with `options.antifarm-place-break-max-cycles-per-location`
 and `options.antifarm-place-break-reset-seconds`; set the maximum cycles to `0` to disable the check.
 

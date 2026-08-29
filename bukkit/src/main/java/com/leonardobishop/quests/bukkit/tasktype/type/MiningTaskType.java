@@ -7,6 +7,7 @@ import com.leonardobishop.quests.bukkit.hook.coreprotect.AbstractCoreProtectHook
 import com.leonardobishop.quests.bukkit.hook.playerblocktracker.AbstractPlayerBlockTrackerHook;
 import com.leonardobishop.quests.bukkit.item.QuestItem;
 import com.leonardobishop.quests.bukkit.tasktype.BukkitTaskType;
+import com.leonardobishop.quests.bukkit.util.Messages;
 import com.leonardobishop.quests.bukkit.util.TaskUtils;
 import com.leonardobishop.quests.bukkit.util.constraint.TaskConstraintSet;
 import com.leonardobishop.quests.common.player.QPlayer;
@@ -22,15 +23,22 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.io.IOException;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.logging.Level;
+
 public final class MiningTaskType extends BukkitTaskType {
 
     private final BukkitQuestsPlugin plugin;
     private final Table<String, String, QuestItem> fixedQuestItemCache = HashBasedTable.create();
     private final RepeatedBlockCycleTracker repeatedBlockCycles = new RepeatedBlockCycleTracker();
+    private final AntiFarmViolationLogger violationLogger;
 
     public MiningTaskType(BukkitQuestsPlugin plugin) {
         super("blockbreak", TaskUtils.TASK_ATTRIBUTION_STRING, "Break a set amount of a block.", "blockbreakcertain");
         this.plugin = plugin;
+        this.violationLogger = new AntiFarmViolationLogger(plugin.getDataFolder().toPath().resolve("logi.txt"));
 
         super.addConfigValidator(TaskUtils.useRequiredConfigValidator(this, "amount"));
         super.addConfigValidator(TaskUtils.useIntegerConfigValidator(this, "amount"));
@@ -67,10 +75,12 @@ public final class MiningTaskType extends BukkitTaskType {
         boolean silkTouchPresent = item != null && item.getEnchantmentLevel(Enchantment.SILK_TOUCH) > 0;
         int allowedCycles = getAllowedPlaceBreakCycles();
         long antiFarmReset = getAntiFarmResetMillis();
-        boolean repeatedPlaceBreakHere = allowedCycles > 0 && repeatedBlockCycles.registerBreak(
-                player.getUniqueId(), block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(),
-                block.getType().name(), System.currentTimeMillis(), antiFarmReset, allowedCycles);
-        boolean antiFarmWarningSent = false;
+        RepeatedBlockCycleTracker.CycleResult cycleResult = allowedCycles > 0
+                ? repeatedBlockCycles.registerBreak(
+                        player.getUniqueId(), block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(),
+                        block.getType().name(), System.currentTimeMillis(), antiFarmReset, allowedCycles)
+                : new RepeatedBlockCycleTracker.CycleResult(false, 0);
+        boolean antiFarmActionTaken = false;
 
         for (TaskUtils.PendingTask pendingTask : TaskUtils.getApplicableTasks(player, qPlayer, this, TaskConstraintSet.ALL)) {
             Quest quest = pendingTask.quest();
@@ -116,12 +126,12 @@ public final class MiningTaskType extends BukkitTaskType {
                 }
             }
 
-            if (repeatedPlaceBreakHere) {
+            if (cycleResult.blocked()) {
                 super.debug("Anti-farm protection ignored repeated place/break cycles at the same coordinates",
                         quest.getId(), task.getId(), player.getUniqueId());
-                if (!antiFarmWarningSent) {
-                    TaskUtils.sendAntiFarmWarning(player, quest, task, taskProgress, block);
-                    antiFarmWarningSent = true;
+                if (!antiFarmActionTaken) {
+                    handleAntiFarmViolation(player, block, quest, task, cycleResult.completedCycles());
+                    antiFarmActionTaken = true;
                 }
                 continue;
             }
@@ -222,5 +232,41 @@ public final class MiningTaskType extends BukkitTaskType {
     private long getAntiFarmResetMillis() {
         int seconds = plugin.getQuestsConfig().getInt("options.antifarm-place-break-reset-seconds", 600);
         return Math.max(1L, seconds) * 1_000L;
+    }
+
+    private void handleAntiFarmViolation(Player player, Block block, Quest quest, Task task, int cycles) {
+        String timestamp = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(ZonedDateTime.now());
+        String playerName = player.getName();
+        String playerId = player.getUniqueId().toString();
+        String world = block.getWorld().getName();
+        int x = block.getX();
+        int y = block.getY();
+        int z = block.getZ();
+        String material = block.getType().name();
+        String questId = quest.getId();
+        String taskId = task.getId();
+
+        plugin.getScheduler().doAsync(() -> {
+            try {
+                violationLogger.append(timestamp, playerName, playerId, world, x, y, z,
+                        material, cycles, questId, taskId);
+            } catch (IOException exception) {
+                plugin.getLogger().log(Level.WARNING, "Could not append mining anti-farm incident to logi.txt", exception);
+            }
+        });
+
+        String kickMessage = Messages.TASK_ANTIFARM_KICK.getMessageLegacyColor()
+                .replace("{cycles}", Integer.toString(cycles))
+                .replace("{world}", world)
+                .replace("{x}", Integer.toString(x))
+                .replace("{y}", Integer.toString(y))
+                .replace("{z}", Integer.toString(z));
+        kickMessage = plugin.applyPlayerAndPAPI(BukkitQuestsPlugin.PAPIType.QUESTS, player, kickMessage);
+        String finalKickMessage = kickMessage;
+        plugin.getScheduler().runTaskAtEntity(player, () -> {
+            if (player.isOnline()) {
+                player.kickPlayer(finalKickMessage);
+            }
+        });
     }
 }

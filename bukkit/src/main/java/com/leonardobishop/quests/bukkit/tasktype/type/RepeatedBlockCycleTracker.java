@@ -33,10 +33,10 @@ final class RepeatedBlockCycleTracker {
         }
     }
 
-    boolean registerBreak(UUID playerId, UUID worldId, int x, int y, int z, String material,
-                          long now, long resetMillis, int allowedCycles) {
+    CycleResult registerBreak(UUID playerId, UUID worldId, int x, int y, int z, String material,
+                              long now, long resetMillis, int allowedCycles) {
         BlockKey key = new BlockKey(playerId, worldId, x, y, z);
-        boolean[] blocked = {false};
+        CycleResult[] result = {new CycleResult(false, 0)};
 
         cycles.computeIfPresent(key, (ignored, state) -> {
             if (state.isStale(now, resetMillis)) {
@@ -49,12 +49,14 @@ final class RepeatedBlockCycleTracker {
             state.awaitingBreak = false;
             state.completedCycles++;
             state.lastActivity = now;
-            blocked[0] = state.completedCycles > allowedCycles;
+            result[0] = new CycleResult(state.completedCycles > allowedCycles, state.completedCycles);
             return state;
         });
 
-        return blocked[0];
+        return result[0];
     }
+
+    record CycleResult(boolean blocked, int completedCycles) { }
 
     private static final class CycleState {
 

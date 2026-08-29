@@ -67,8 +67,6 @@ options:
   antifarm-place-break-max-cycles-per-location: 5
   # Forget the counter after this many seconds without another cycle at that location.
   antifarm-place-break-reset-seconds: 600
-  # Show a throttled warning when the place/break check blocks task progress.
-  antifarm-warning: true
   # Allow players to have multiple active quests.
   # You can set the default number of quests using the 'default' rank below.
   # To grant different quest limits to different people, you can define a 'quest-rank'
@@ -502,9 +500,6 @@ gui:
 #  Please refer to the source code for the default messages.
 # -----------------------------------------------------------
 titles:
-  task-antifarm:
-    title: "&e&l⚠ Nie ma tak łatwo"
-    subtitle: "&7Niszczenie w kółko tego samego bloku się nie liczy"
   quest-start:
     title: "&cQuest Started"
     subtitle: "&7{quest}"
@@ -529,10 +524,10 @@ messages:
     &7Do wykonania: &f{requirement}
     &7Wynik: &a{progress}/{amount}
     &8&m--------------------------------
-  # {quest} {task} {progress} {amount}
-  task-antifarm-warning: |-
-    &c&l⚠ &7Ten blok nie zwiększył postępu zadania &f{task} &7(&f{quest}&7): &e{progress}&7/&f{amount}&7.
-    &7Za wiele razy stawiasz i niszczysz ten sam blok na tych samych koordynatach. Samo stawianie bloków nie cofa postępu.
+  # {cycles} {world} {x} {y} {z}
+  task-antifarm-kick: |-
+    &cWykryto wielokrotne stawianie i niszczenie tego samego bloku.
+    &7Zdarzenie zostało zapisane w logach.
   quest-random-none: "&cYou have no quests which you can start."
   quest-start-limit: "&7Players are limited to &c{limit} &7started quests at a time."
   quest-start-disabled: "&7You cannot repeat this quest."
