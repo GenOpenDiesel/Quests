@@ -65,7 +65,7 @@ options:
   # From the next cycle onward, breaking that repeatedly recycled block does not count.
   # Set to 0 to disable this lightweight anti-farm check.
   antifarm-place-break-max-cycles-per-location: 5
-  # Forget the counter after this many seconds without another cycle at that location.
+  # Forget mining cycle counters and credited building placements after this many seconds.
   antifarm-place-break-reset-seconds: 600
   # Allow players to have multiple active quests.
   # You can set the default number of quests using the 'default' rank below.

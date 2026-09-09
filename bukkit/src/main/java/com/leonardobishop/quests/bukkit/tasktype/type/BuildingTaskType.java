@@ -15,9 +15,13 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public final class BuildingTaskType extends BukkitTaskType {
 
     private final BukkitQuestsPlugin plugin;
+    private final CreditedBlockPlacementTracker creditedPlacements = new CreditedBlockPlacementTracker();
 
     public BuildingTaskType(BukkitQuestsPlugin plugin) {
         super("blockplace", TaskUtils.TASK_ATTRIBUTION_STRING, "Place a set amount of a block.", "blockplacecertain");
@@ -44,6 +48,7 @@ public final class BuildingTaskType extends BukkitTaskType {
         }
 
         Block block = event.getBlock();
+        Set<CreditedBlockPlacementTracker.TaskKey> creditedTasks = new HashSet<>();
 
         for (TaskUtils.PendingTask pendingTask : TaskUtils.getApplicableTasks(player, qPlayer, this, TaskConstraintSet.ALL)) {
             Quest quest = pendingTask.quest();
@@ -60,6 +65,10 @@ public final class BuildingTaskType extends BukkitTaskType {
             int progress = TaskUtils.incrementIntegerTaskProgress(taskProgress);
             super.debug("Incrementing task progress (now " + progress + ")", quest.getId(), task.getId(), player.getUniqueId());
 
+            if (TaskUtils.getConfigBoolean(task, "reverse-if-broken", true)) {
+                creditedTasks.add(new CreditedBlockPlacementTracker.TaskKey(quest.getId(), task.getId()));
+            }
+
             int amount = (int) task.getConfigValue("amount");
             if (progress >= amount) {
                 super.debug("Marking task as complete", quest.getId(), task.getId(), player.getUniqueId());
@@ -68,10 +77,17 @@ public final class BuildingTaskType extends BukkitTaskType {
 
             TaskUtils.sendTrackAdvancement(player, quest, task, pendingTask, amount);
         }
+
+        if (!creditedTasks.isEmpty()) {
+            creditedPlacements.recordPlacement(player.getUniqueId(), block.getWorld().getUID(),
+                    block.getX(), block.getY(), block.getZ(), block.getType().name(), creditedTasks,
+                    System.currentTimeMillis(), getPlacementCreditResetMillis());
+        }
     }
 
-    // Always subtract matching breaks. This prevents players from repeatedly
-    // placing and breaking the same blocks to farm building/delivery progress.
+    // Reverse only a placement which actually credited this exact task at these
+    // coordinates. Breaking a natural or otherwise unrelated matching block must
+    // not remove legitimate building progress.
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
@@ -85,6 +101,12 @@ public final class BuildingTaskType extends BukkitTaskType {
         }
 
         Block block = event.getBlock();
+        Set<CreditedBlockPlacementTracker.TaskKey> creditedTasks = creditedPlacements.consumeBreak(
+                player.getUniqueId(), block.getWorld().getUID(), block.getX(), block.getY(), block.getZ(),
+                block.getType().name(), System.currentTimeMillis(), getPlacementCreditResetMillis());
+        if (creditedTasks.isEmpty()) {
+            return;
+        }
 
         for (TaskUtils.PendingTask pendingTask : TaskUtils.getApplicableTasks(player, qPlayer, this, TaskConstraintSet.ALL)) {
             Quest quest = pendingTask.quest();
@@ -93,7 +115,19 @@ public final class BuildingTaskType extends BukkitTaskType {
 
             super.debug("Player mined block " + block.getType(), quest.getId(), task.getId(), player.getUniqueId());
 
-            super.debug("Anti-farm protection is checking the broken block", quest.getId(), task.getId(), player.getUniqueId());
+            CreditedBlockPlacementTracker.TaskKey taskKey =
+                    new CreditedBlockPlacementTracker.TaskKey(quest.getId(), task.getId());
+            if (!creditedTasks.contains(taskKey)) {
+                super.debug("Broken block did not credit this task when it was placed, continuing...",
+                        quest.getId(), task.getId(), player.getUniqueId());
+                continue;
+            }
+
+            if (!TaskUtils.getConfigBoolean(task, "reverse-if-broken", true)) {
+                super.debug("reverse-if-broken is disabled, continuing...",
+                        quest.getId(), task.getId(), player.getUniqueId());
+                continue;
+            }
 
             if (!TaskUtils.matchBlock(this, pendingTask, block, player.getUniqueId())) {
                 super.debug("Continuing...", quest.getId(), task.getId(), player.getUniqueId());
@@ -112,5 +146,10 @@ public final class BuildingTaskType extends BukkitTaskType {
             int amount = (int) task.getConfigValue("amount");
             TaskUtils.sendTrackAdvancement(player, quest, task, pendingTask, amount);
         }
+    }
+
+    private long getPlacementCreditResetMillis() {
+        int seconds = plugin.getQuestsConfig().getInt("options.antifarm-place-break-reset-seconds", 600);
+        return Math.max(1L, seconds) * 1_000L;
     }
 }

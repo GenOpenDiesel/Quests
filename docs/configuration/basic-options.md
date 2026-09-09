@@ -145,7 +145,7 @@ options:
   task-complete-preview: true
 ```
 
-## Mining place/break protection
+## Place/break protections
 
 *`options.antifarm-place-break-max-cycles-per-location`*
 
@@ -155,6 +155,11 @@ progress. Different coordinates are counted separately, and placing a block neve
 existing progress. After 10 minutes without another cycle at that location, its counter resets.
 When the limit is exceeded, the player is kicked and a detailed incident is appended to
 `plugins/Quests/logi.txt`.
+
+Building tasks use the same reset period to remember only placements which actually awarded
+progress. Breaking that exact credited block reverses one point by default, while breaking a
+natural or unrelated block of the same material does nothing. This per-task behaviour can be
+disabled with `reverse-if-broken: false`.
 
 ```yaml
 options:
