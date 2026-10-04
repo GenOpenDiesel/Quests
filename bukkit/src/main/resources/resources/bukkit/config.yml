@@ -164,6 +164,9 @@ options:
     override-errors: false
   # How much time (in seconds) that plugin will cache placeholders
   placeholder-cache-time: 10
+  # How much time (in seconds) the /quests top leaderboard is cached for before it is built again.
+  # Building it reads the data of every player, so do not set this too low. 0 disables the cache.
+  leaderboard-cache-time: 300
   # Whether the global task configuration will override per-task configuration settings
   global-task-configuration-override: false
   # Whether the global display configuration will override per-quest display settins
@@ -547,6 +550,17 @@ messages:
   command-data-not-loaded: "&4Your quests progress file has not been loaded; you cannot use quests. If this issue persists, contact an admin."
   command-sub-doesntexist: "&7The specified subcommand '&c{sub}' &7does not exist."
   command-no-permission: "&7You do not have permission to use this command."
+  # /quests top - the quest completion leaderboard
+  # {total} {position} {player} {completed} {remaining}
+  command-top-loading: "&7Licze ranking zadan, chwilka..."
+  command-top-empty: "&7Nikt nie ukonczyl jeszcze zadnego zadania."
+  command-top-header: |-
+    &8&m---------&r &6&lTOP ZADAN &8&m---------
+    &7Do kompletu trzeba &c{total} &7zadan.
+  command-top-entry-complete: "&e{position}. &f{player} &8\u00bb &6\u2605 &7komplet &8({completed}/{total})"
+  command-top-entry: "&e{position}. &f{player} &8\u00bb &c{completed}&7/&c{total} &8(brakuje {remaining})"
+  command-top-self: "&7Twoje miejsce: &c#{position} &8\u00bb &c{completed}&7/&c{total} &8(brakuje {remaining})"
+  command-top-self-none: "&7Nie masz jeszcze ukonczonego zadnego zadania &8(0/{total})&7."
   command-quest-cancel-specify: "&7You must specify a quest to cancel."
   command-quest-start-doesntexist: "&7The specified quest '&c{quest}&7' does not exist."
   command-quest-general-doesntexist: "&7The specified quest '&c{quest}&7' does not exist."

@@ -49,6 +49,7 @@ import com.leonardobishop.quests.bukkit.menu.MenuController;
 import com.leonardobishop.quests.bukkit.menu.itemstack.QItemStackRegistry;
 import com.leonardobishop.quests.bukkit.questcompleter.BukkitQuestCompleter;
 import com.leonardobishop.quests.bukkit.questcontroller.NormalQuestController;
+import com.leonardobishop.quests.bukkit.leaderboard.CompletionLeaderboard;
 import com.leonardobishop.quests.bukkit.restriction.QuestRestrictionManager;
 import com.leonardobishop.quests.bukkit.runnable.QuestsAutoSaveRunnable;
 import com.leonardobishop.quests.bukkit.scheduler.ServerScheduler;
@@ -202,6 +203,7 @@ public class BukkitQuestsPlugin extends JavaPlugin implements Quests {
     private BukkitQuestCompleter questCompleter;
     private BukkitQuestsConfig questsConfig;
     private QuestRestrictionManager questRestrictionManager;
+    private CompletionLeaderboard completionLeaderboard;
     private Updater updater;
     private ServerScheduler serverScheduler;
     private StorageProvider storageProvider;
@@ -272,6 +274,10 @@ public class BukkitQuestsPlugin extends JavaPlugin implements Quests {
         return questsConfig;
     }
 
+    public @NotNull CompletionLeaderboard getCompletionLeaderboard() {
+        return completionLeaderboard;
+    }
+
     public @NotNull QuestRestrictionManager getQuestRestrictionManager() {
         return questRestrictionManager;
     }
@@ -325,6 +331,7 @@ public class BukkitQuestsPlugin extends JavaPlugin implements Quests {
 
         // Playtime and multi-account restrictions (configured in reloadBaseConfiguration)
         this.questRestrictionManager = new QuestRestrictionManager(this);
+        this.completionLeaderboard = new CompletionLeaderboard(this);
 
         // Load base configuration for use during rest of startup procedure
         if (!this.reloadBaseConfiguration(true)) {
@@ -647,6 +654,9 @@ public class BukkitQuestsPlugin extends JavaPlugin implements Quests {
 
     @Override
     public void reloadQuests() {
+        // The quests themselves decide what a complete ranking looks like, so it has to be built again
+        this.completionLeaderboard.invalidate();
+
         if (this.reloadBaseConfiguration(false)) {
             BukkitQuestsLoader questsLoader = new BukkitQuestsLoader(this);
             questsLoader.loadQuestItems(new File(super.getDataFolder() + File.separator + "items"));

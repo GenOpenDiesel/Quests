@@ -71,6 +71,15 @@ public enum Messages {
     COMMAND_QUEST_ADMIN_RANDOM_CATEGORY_NONE("messages.command-quest-admin-random-category-none", "&7Player &c{player}&7 has no quests in category '&c{category}&7' which they can start."),
     COMMAND_QUEST_ADMIN_RANDOM_CATEGORY_SUCCESS("messages.command-quest-admin-random-category-success", "&7Successfully started random quest '&c{quest}&7' from category '&c{category}&7' for player &c{player}&7."),
 
+    // Leaderboard
+    COMMAND_TOP_LOADING("messages.command-top-loading", "&7Liczę ranking zadań, chwilka..."),
+    COMMAND_TOP_EMPTY("messages.command-top-empty", "&7Nikt nie ukończył jeszcze żadnego zadania."),
+    COMMAND_TOP_HEADER("messages.command-top-header", "&8&m---------&r &6&lTOP ZADAN &8&m---------\n&7Do kompletu trzeba &c{total} &7zadań."),
+    COMMAND_TOP_ENTRY_COMPLETE("messages.command-top-entry-complete", "&e{position}. &f{player} &8» &6★ &7komplet &8({completed}/{total})"),
+    COMMAND_TOP_ENTRY("messages.command-top-entry", "&e{position}. &f{player} &8» &c{completed}&7/&c{total} &8(brakuje {remaining})"),
+    COMMAND_TOP_SELF("messages.command-top-self", "&7Twoje miejsce: &c#{position} &8» &c{completed}&7/&c{total} &8(brakuje {remaining})"),
+    COMMAND_TOP_SELF_NONE("messages.command-top-self-none", "&7Nie masz jeszcze ukończonego żadnego zadania &8(0/{total})&7."),
+
     // Other
     UI_PLACEHOLDERS_TRUE("messages.ui-placeholder-completed-true", "true"),
     UI_PLACEHOLDERS_FALSE("messages.ui-placeholder-completed-false", "false"),

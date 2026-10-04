@@ -11,6 +11,8 @@ also be viewed in-game by simply running `/quests`.
 - **/quests \[or /q\]** - opens quest GUI
 - **/quests help** - view help screen for quests commands
 - **/quests started** - view a menu of started quests
+- **/quests top** - view the quest completion leaderboard, showing who has
+  completed every quest and who is closest to it
 - **/quests random \[category\]** - start a random quest \[in a random
   category\]
 - **/quests cancel \<questid/\*\>** - cancel quest by id
@@ -76,6 +78,7 @@ also be viewed in-game by simply running `/quests`.
 - `quests.command` - to view the quest menu (/quests)
 - `quests.command.category` - to view a specific category (/q category)
 - `quests.command.started` - to view quest started menu (/q started)
+- `quests.command.top` - to view the completion leaderboard (/q top)
 - `quests.command.quest` - to use /q quest
 - `quests.command.start` - to start a quest by command (/q start)
 - `quests.command.track` - to cancel a quest by command (q track)

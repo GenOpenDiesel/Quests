@@ -61,6 +61,9 @@ permissions:
   quests.command.started:
     description: Permission to execute /q started
     default: op
+  quests.command.top:
+    description: Permission to execute /q top
+    default: true
   quests.command.quest:
     description: Permission to execute /q quest
     default: op
