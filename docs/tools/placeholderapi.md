@@ -37,6 +37,17 @@ The eCloud extension called 'Quests' is not for this plugin, do not download it!
 | `%quests_limit%`           | Returns the **number** of quests the player can have started simultaneously. |
 | `%quests_categories%`      | Returns the **number** of categories on the server.                          |
 
+### Completionist
+
+| Placeholder                 | Description                                                                                                        |
+|-----------------------------|--------------------------------------------------------------------------------------------------------------------|
+| `%quests_completionist%`      | Returns a **★ emoji**, or **nothing**, if the player has completed every quest currently on the server at least once. |
+| `%quests_completionist_bool%` | Returns **true/false** on whether or not the player has completed every quest currently on the server.                |
+
+Only quests with `options.counts-towards-completed` set to `true` (the default) are taken into account, so
+daily or otherwise repeatable quests can be left out of it. Quests which have been removed from the server
+no longer count, and adding a new quest takes the emoji away from everyone until they complete that one too.
+
 ### Quest lists
 
 | Placeholder                     | Description                                                                                           |

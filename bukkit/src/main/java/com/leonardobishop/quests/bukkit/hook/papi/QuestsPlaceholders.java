@@ -10,6 +10,7 @@ import com.leonardobishop.quests.common.enums.QuestStartResult;
 import com.leonardobishop.quests.common.player.QPlayer;
 import com.leonardobishop.quests.common.player.questprogressfile.QuestProgress;
 import com.leonardobishop.quests.common.player.questprogressfile.QuestProgressFile;
+import com.leonardobishop.quests.common.player.questprogressfile.filters.QuestProgressFilter;
 import com.leonardobishop.quests.common.quest.Category;
 import com.leonardobishop.quests.common.quest.Quest;
 import com.leonardobishop.quests.common.quest.Task;
@@ -27,6 +28,9 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class QuestsPlaceholders extends PlaceholderExpansion implements Cacheable {
+
+    /** Shown by {@code %quests_completionist%} to players who have completed every quest on the server. */
+    private static final String COMPLETIONIST_EMOJI = "&6★";
 
     private final BukkitQuestsPlugin plugin;
     private final Map<String, Map<String, String>> cache = new HashMap<>();
@@ -99,6 +103,15 @@ public class QuestsPlaceholders extends PlaceholderExpansion implements Cacheabl
                     final List<Quest> listCompletedB = qPlayer.getQuestProgressFile().getAllQuestsFromProgress(QuestProgressFile.QuestsProgressFilter.COMPLETED_BEFORE);
                     listCompletedB.removeIf(quest -> !quest.doesCountTowardsCompleted());
                     result = (args.length == 1 ? String.valueOf(listCompletedB.size()) : parseList(listCompletedB, args[1], split));
+                    break;
+                case "completionist":
+                case "cp":
+                    final boolean completionist = isCompletionist(qPlayer);
+                    if (args.length > 1 && (args[1].equalsIgnoreCase("bool") || args[1].equalsIgnoreCase("b"))) {
+                        result = (completionist ? Messages.PLACEHOLDERAPI_TRUE : Messages.PLACEHOLDERAPI_FALSE).getMessageLegacyColor();
+                    } else {
+                        result = (completionist ? Chat.legacyColor(COMPLETIONIST_EMOJI) : "");
+                    }
                     break;
                 case "started":
                 case "s":
@@ -316,6 +329,25 @@ public class QuestsPlaceholders extends PlaceholderExpansion implements Cacheabl
             }
         }
         return (save ? cache(p.getName(), params, result) : result);
+    }
+
+    /**
+     * Whether the player has completed - at any point, as quests may have been started again since - every
+     * quest currently registered on the server which counts towards completion. Quests which are no longer
+     * registered are ignored, so removing a quest cannot keep a player from being a completionist, and
+     * adding one takes the status away until it is completed as well.
+     *
+     * @param questP the player to check
+     * @return true if no counting quest is left to complete
+     */
+    private boolean isCompletionist(QPlayer questP) {
+        final int required = plugin.getQuestManager().getCompletionCountingQuestCount();
+        if (required == 0) {
+            return false;
+        }
+
+        final int completed = questP.getQuestProgressFile().getAllQuestsFromProgressCount(QuestProgressFilter.COMPLETED_BEFORE_COUNT);
+        return completed >= required;
     }
 
     private String cache(String player, String params, String result) {

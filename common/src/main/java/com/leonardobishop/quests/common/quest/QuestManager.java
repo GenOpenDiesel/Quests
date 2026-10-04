@@ -23,6 +23,9 @@ public final class QuestManager {
     private final Map<String, Quest> questMap;
     private final List<Category> categories;
 
+    /** Lazily computed by {@link QuestManager#getCompletionCountingQuestCount()}, -1 when it has to be recomputed. */
+    private int completionCountingQuestCount = -1;
+
     /**
      * Constructs a QuestManager.
      */
@@ -41,6 +44,35 @@ public final class QuestManager {
         Objects.requireNonNull(quest, "quest cannot be null");
 
         this.questMap.put(quest.getId(), quest);
+        this.completionCountingQuestCount = -1;
+    }
+
+    /**
+     * Get how many of the registered quests count towards completion, as per the
+     * {@code options.counts-towards-completed} option of a quest. This is the number of quests a player
+     * has to have completed to have completed every quest currently on the server.
+     * <p>
+     * The result is cached and only recomputed after the registry has changed, as this is read on every
+     * placeholder request.
+     *
+     * @return count of registered quests which count towards completion
+     */
+    public int getCompletionCountingQuestCount() {
+        int count = this.completionCountingQuestCount;
+
+        if (count == -1) {
+            count = 0;
+
+            for (final Quest quest : this.questMap.values()) {
+                if (quest.doesCountTowardsCompleted()) {
+                    count++;
+                }
+            }
+
+            this.completionCountingQuestCount = count;
+        }
+
+        return count;
     }
 
     /**
@@ -110,6 +142,7 @@ public final class QuestManager {
     public void clear() {
         this.questMap.clear();
         this.categories.clear();
+        this.completionCountingQuestCount = -1;
     }
 
     // DEPRECATED AND FOR REMOVAL
