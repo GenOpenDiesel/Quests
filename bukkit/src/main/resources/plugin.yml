@@ -5,7 +5,7 @@ version: "${version}"
 
 main: com.leonardobishop.quests.bukkit.BukkitQuestsPlugin
 website: https://github.com/LMBishop/Quests
-author: "LMBishop & contributors"
+author: genallthebest
 softdepend:
 - ASkyBlock
 - BedWars1058
